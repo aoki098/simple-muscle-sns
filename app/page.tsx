@@ -1,4 +1,4 @@
-// app/page.tsx (修正後)
+// 理解しないといけない
 "use client"; // 状態管理とAPI呼び出しのため 'use client' が必要
 
 import { useState, useEffect } from "react";
@@ -41,7 +41,7 @@ export default function HomePage() {
   return (
     <div className="max-w-4xl mx-auto p-5 space-y-8">
       <h1 className="text-3xl font-extrabold text-center text-gray-900">
-        💪 Next.js 筋トレ SNS アプリ
+        シンプル 筋トレ SNS アプリ
       </h1>
 
       {/* 投稿フォームエリア: 成功時にfetchPostsを呼び出す */}

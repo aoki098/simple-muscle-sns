@@ -1,4 +1,4 @@
-// components/PostForm.tsx (修正後)
+// 理解しないといけない
 "use client";
 
 import { useState } from "react";
