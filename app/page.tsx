@@ -1,4 +1,4 @@
-// 理解しないといけない
+// 内側のレイアウト
 "use client"; // 状態管理とAPI呼び出しのため 'use client' が必要
 
 import { useState, useEffect } from "react";
