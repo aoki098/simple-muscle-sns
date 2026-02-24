@@ -45,7 +45,7 @@ export default function PostList({ refreshKey }: { refreshKey: number }) {
               <li key={i} className="text-gray-800">
                 <span className="font-semibold">{ex.name}</span>
                 {ex.weight > 0 && <span className="ml-2 bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-sm">{ex.weight} kg</span>}
-                {ex.details && <span className="ml-2 text-sm text-gray-500">({ex.details})</span>}
+                {ex.details && <span className="ml-2 text-sm text-gray-500">{ex.details}</span>}
               </li>
             ))}
           </ul>
