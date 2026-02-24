@@ -1,17 +1,22 @@
 "use client";
 
 import PostList from "@/components/PostList";
+import { useTheme } from "@/components/ThemeContext";
 
 export default function Home() {
+  const { theme } = useTheme();
+
+  // 見出しの文字色をテーマに合わせて切り替える
+  const headingColor = theme === "light" ? "text-gray-800" : "text-white";
+
   return (
-    <main className="min-h-screen bg-gray-50 py-8 px-4">
-      <h1 className="text-3xl font-extrabold text-center mb-6 text-gray-800">
+    // bg-gray-50 などを完全に排除し、親（body）の真っ黒を反映させます
+    <main className="min-h-screen py-8 px-4 transition-colors duration-300">
+      <h1 className={`text-3xl font-extrabold text-center mb-6 transition-colors duration-300 ${headingColor}`}>
         🏠 タイムライン
       </h1>
 
-      {/* フォームは消して、一覧だけにする */}
       <div>
-        {/* 画面を切り替えるたびに新しく読み込まれるので、refreshKeyは一旦0でOKです */}
         <PostList refreshKey={0} />
       </div>
     </main>

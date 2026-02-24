@@ -2,24 +2,24 @@
 
 import { useRouter } from "next/navigation";
 import PostForm from "@/components/PostForm";
+import { useTheme } from "@/components/ThemeContext";
 
 export default function PostPage() {
-  // 画面を移動するためのNext.jsの便利アイテム
   const router = useRouter();
+  const { theme } = useTheme();
 
-  // 投稿が成功したときに実行される関数
   const handlePostSuccess = () => {
-    // 成功したら、自動的にトップページ（/）に戻す！
     router.push("/");
   };
 
+  const headingColor = theme === "light" ? "text-gray-800" : "text-white";
+
   return (
-    <main className="min-h-screen bg-gray-50 py-8 px-4">
-      <h1 className="text-2xl font-bold text-center mb-6 text-gray-800">
+    <main className="min-h-screen py-8 px-4 transition-colors duration-300">
+      <h1 className={`text-2xl font-bold text-center mb-6 transition-colors duration-300 ${headingColor}`}>
         ✍️ 新しく記録する
       </h1>
       
-      {/* ここに、今まで作ってきたフォームを呼び出す */}
       <PostForm onPostSuccess={handlePostSuccess} />
     </main>
   );

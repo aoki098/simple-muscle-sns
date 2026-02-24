@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import "./globals.css";
-
-// 👇 さっき作ったメニューバーをインポート
+import "./globals.css"; 
 import BottomNav from "@/components/BottomNav";
+
+// 👇 さっき作った魔法の箱をインポート
+import { ThemeProvider } from "@/components/ThemeContext";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -19,16 +20,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ja">
-      {/* 👇 pb-20 (padding-bottom) を追加するのが超重要！
-        これがないと、画面の一番下のコンテンツがメニューバーに隠れてしまいます。
-      */}
-      <body className={`${inter.className} bg-gray-50 pb-20`}>
+      {/* transition-colors を入れると、色がフワッと切り替わってカッコいいです */}
+      <body className={`${inter.className} pb-20 transition-colors duration-300`}>
         
-        {/* ここに各ページの中身（ホームや投稿画面など）が入る */}
-        {children}
-
-        {/* 👇 画面の一番下にメニューバーを配置！ */}
-        <BottomNav />
+        {/* 👇 アプリ全体を ThemeProvider で包み込む！ */}
+        <ThemeProvider>
+          {children}
+          <BottomNav />
+        </ThemeProvider>
         
       </body>
     </html>
