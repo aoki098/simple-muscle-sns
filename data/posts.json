@@ -1,5 +1,28 @@
 [
   {
+    "date": "2026-02-27",
+    "exercises": [
+      {
+        "name": "れあ",
+        "weight": 32,
+        "details": "rea"
+      },
+      {
+        "name": "agr",
+        "weight": 43,
+        "details": "aeb"
+      }
+    ],
+    "mealCalories": 43,
+    "mealProteinGrams": 43,
+    "mealFatGrams": 43,
+    "mealCarbsGrams": 43,
+    "mealDetails": "bfsu;j",
+    "id": 8,
+    "userName": "Guest User",
+    "likes": 0
+  },
+  {
     "date": "2026-02-03",
     "trainingTimeMinutes": 0,
     "trainingDetails": "",
