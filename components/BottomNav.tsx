@@ -8,6 +8,7 @@ export default function BottomNav() {
   const pathname = usePathname();
   const { theme } = useTheme();
 
+  // 下のメニューバーも真っ黒に！
   const navBgClass = theme === "light" ? "bg-white border-gray-200" : "bg-black border-gray-800 text-gray-400";
   
   const activeColor = 

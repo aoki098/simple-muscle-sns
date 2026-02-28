@@ -1,12 +1,22 @@
 "use client";
 
 import { useTheme } from "@/components/ThemeContext";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
+import { useRouter } from "next/navigation";
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
+  const router = useRouter();
   
+  // 入力された文字を管理する状態（最初は空っぽにしておきます）
+  const [username, setUsername] = useState("");
+  const [bio, setBio] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  
+  const [isSaving, setIsSaving] = useState(false);
+  const [message, setMessage] = useState("");
+
   const [isPrivate, setIsPrivate] = useState(false);
   const [notifyLikes, setNotifyLikes] = useState(true);
   const [notifyFollows, setNotifyFollows] = useState(true);
@@ -16,6 +26,62 @@ export default function SettingsPage() {
     ? "bg-gray-50 border-gray-300 focus:border-blue-500 text-gray-900"
     : "bg-black border-gray-700 focus:border-blue-500 text-white placeholder-gray-600";
   const dividerClass = theme === "light" ? "border-gray-200" : "border-gray-800";
+
+  // 画面を開いた時に、すでに保存されているプロフィールを読み込む
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+        if (data) {
+          setUsername(data.username || "");
+          setBio(data.bio || "");
+        }
+      }
+    };
+    fetchProfile();
+  }, []);
+
+  // 💾 プロフィールを保存する関数
+  const handleSaveProfile = async () => {
+    setIsSaving(true);
+    setMessage("");
+    
+    // 今ログインしているユーザーの情報を取得
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      setMessage("❌ ログインしていません");
+      setIsSaving(false);
+      return;
+    }
+
+    // Supabaseの profiles テーブルにデータを保存（上書き）
+    const { error } = await supabase
+      .from('profiles')
+      .upsert({
+        id: user.id, // 誰のデータか紐付けるためのID
+        username: username,
+        bio: bio,
+      });
+
+    if (error) {
+      setMessage(`❌ エラー: ${error.message}`);
+    } else {
+      setMessage("✅ プロフィールを保存しました！");
+    }
+    
+    setIsSaving(false);
+    
+    // 3秒後にメッセージを消す
+    setTimeout(() => setMessage(""), 3000);
+  };
+
+  // 🚪 ログアウト関数（前回作ったもの）
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push("/login");
+  };
 
   const ToggleSwitch = ({ checked, onChange }: { checked: boolean, onChange: () => void }) => (
     <button 
@@ -67,7 +133,9 @@ export default function SettingsPage() {
               <label className="block text-sm font-medium mb-1 opacity-80">ユーザーネーム</label>
               <input 
                 type="text" 
-                defaultValue="テストユーザー"
+                value={username} // 入力された状態を連携
+                onChange={(e) => setUsername(e.target.value)} // 文字を打つたびに状態を更新
+                placeholder="筋トレ大好き太郎"
                 className={`w-full rounded-md border p-2 transition-colors duration-300 ${inputClass}`} 
               />
             </div>
@@ -76,21 +144,34 @@ export default function SettingsPage() {
               <label className="block text-sm font-medium mb-1 opacity-80">自己紹介</label>
               <textarea 
                 rows={3}
-                defaultValue="ベンチプレス100kg目指して頑張ります！よろしくお願いします。"
+                value={bio} // 入力された状態を連携
+                onChange={(e) => setBio(e.target.value)} // 文字を打つたびに状態を更新
+                placeholder="ベンチプレス100kg目指して頑張ります！"
                 className={`w-full rounded-md border p-2 transition-colors duration-300 ${inputClass}`} 
               />
             </div>
             
-            <button className="w-full py-2 bg-blue-600 text-white font-bold rounded-md hover:bg-blue-700 transition shadow-md">
-              プロフィールを保存
+            <button 
+              onClick={handleSaveProfile} // クリックした時に保存関数を呼び出す
+              disabled={isSaving}
+              className={`w-full py-2 text-white font-bold rounded-md transition shadow-md ${isSaving ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"}`}
+            >
+              {isSaving ? "保存中..." : "プロフィールを保存"}
             </button>
+
+            {/* 保存完了メッセージの表示 */}
+            {message && (
+              <p className={`text-center font-bold text-sm mt-2 ${message.includes("❌") ? "text-red-500" : "text-green-500"}`}>
+                {message}
+              </p>
+            )}
           </div>
         </div>
 
         {/* --- 🔒 アカウント公開設定（鍵垢） --- */}
+        {/* ... 中略（変更なし） ... */}
         <div className={`p-6 rounded-lg shadow-md transition-colors duration-300 ${panelClass}`}>
           <h2 className={`font-bold mb-4 border-b pb-2 ${dividerClass}`}>🔒 プライバシー</h2>
-          
           <div className="flex items-center justify-between py-2">
             <div>
               <p className="font-bold">非公開アカウント（鍵垢）</p>
@@ -100,28 +181,8 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* --- 🔔 通知設定 --- */}
-        <div className={`p-6 rounded-lg shadow-md transition-colors duration-300 ${panelClass}`}>
-          <h2 className={`font-bold mb-4 border-b pb-2 ${dividerClass}`}>🔔 通知設定</h2>
-          
-          <div className="space-y-4">
-            <div className="flex items-center justify-between py-2">
-              <div>
-                <p className="font-bold">いいねされたとき</p>
-              </div>
-              <ToggleSwitch checked={notifyLikes} onChange={() => setNotifyLikes(!notifyLikes)} />
-            </div>
-
-            <div className="flex items-center justify-between py-2">
-              <div>
-                <p className="font-bold">フォローされたとき</p>
-              </div>
-              <ToggleSwitch checked={notifyFollows} onChange={() => setNotifyFollows(!notifyFollows)} />
-            </div>
-          </div>
-        </div>
-
         {/* --- 🎨 テーマカラー設定 --- */}
+        {/* ... 中略（変更なし） ... */}
         <div className={`p-6 rounded-lg shadow-md transition-colors duration-300 ${panelClass}`}>
           <h2 className={`font-bold mb-4 border-b pb-2 ${dividerClass}`}>🎨 テーマカラー</h2>
           <div className="space-y-3">
@@ -139,7 +200,10 @@ export default function SettingsPage() {
 
         {/* --- 🚪 アカウント管理 --- */}
         <div className={`p-6 rounded-lg shadow-md transition-colors duration-300 ${panelClass}`}>
-          <button className="w-full py-3 bg-red-950 text-red-500 font-bold rounded-md hover:bg-red-900 border border-red-800 transition">
+          <button 
+            onClick={handleLogout} 
+            className="w-full py-3 bg-red-950 text-red-500 font-bold rounded-md hover:bg-red-900 border border-red-800 transition"
+          >
             🚪 ログアウト
           </button>
         </div>

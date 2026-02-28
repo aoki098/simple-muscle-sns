@@ -7,12 +7,13 @@ export default function RecordsPage() {
 
   const headingColor = theme === "light" ? "text-gray-800" : "text-white";
   
+  // ガワのパネルも真っ黒＆枠線のみに
   const panelClass = theme === "light" 
     ? "bg-white text-gray-500 shadow-md" 
     : "bg-black border border-gray-800 text-gray-400";
 
   return (
-    <main className="min-h-screen py-8 px-4 transition-colors duration-300 pb-24">
+    <main className="min-h-screen py-8 px-4 transition-colors duration-300">
       <h1 className={`text-2xl font-bold text-center mb-6 transition-colors duration-300 ${headingColor}`}>
         📊 自分の記録
       </h1>

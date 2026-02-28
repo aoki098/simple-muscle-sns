@@ -9,6 +9,7 @@ export default function PostList({ refreshKey }: { refreshKey: number }) {
   const [isLoading, setIsLoading] = useState(true);
   const { theme } = useTheme();
 
+  // カードの色を真っ黒に！
   const cardClass = theme === "light"
     ? "bg-white border-gray-100 text-gray-900 shadow-sm"
     : theme === "dark-red"
@@ -41,7 +42,7 @@ export default function PostList({ refreshKey }: { refreshKey: number }) {
   if (posts.length === 0) return <p className="text-center mt-8 opacity-60">まだ投稿がありません。最初の記録をつけましょう！</p>;
 
   return (
-    <div className="space-y-6 mt-8 max-w-xl mx-auto pb-24">
+    <div className="space-y-6 mt-8 max-w-xl mx-auto">
       {posts.map((post) => (
         <div key={post.id} className={`p-5 rounded-lg border transition-colors duration-300 shadow-md ${cardClass}`}>
           <div className="opacity-70 text-sm mb-3">📅 {post.date}</div>

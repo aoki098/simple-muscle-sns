@@ -24,6 +24,7 @@ export default function PostForm({ onPostSuccess }: PostFormProps) {
   const [message, setMessage] = useState("");
   const { theme } = useTheme();
 
+  // フォーム全体も真っ黒に！
   const containerClass = theme === "light"
     ? "bg-white border-gray-200 shadow-md"
     : theme === "dark-red"
@@ -31,7 +32,7 @@ export default function PostForm({ onPostSuccess }: PostFormProps) {
       : "bg-black border-blue-900 text-blue-50 shadow-blue-900/20";
 
   const inputClass = theme === "light"
-    ? "border-gray-300 focus:border-blue-500 focus:ring-blue-500 text-gray-900"
+    ? "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
     : theme === "dark-red"
       ? "bg-black border-red-900 text-white focus:border-red-500 focus:ring-red-500 placeholder-red-900"
       : "bg-black border-blue-900 text-white focus:border-blue-500 focus:ring-blue-500 placeholder-blue-900";
@@ -55,7 +56,7 @@ export default function PostForm({ onPostSuccess }: PostFormProps) {
     ? "bg-red-700 hover:bg-red-800 shadow-red-500/30"
     : theme === "dark-blue"
       ? "bg-blue-700 hover:bg-blue-800 shadow-blue-500/30"
-      : "bg-blue-600 hover:bg-blue-700 shadow-md";
+      : "bg-red-500 hover:bg-red-600 shadow-md";
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -133,7 +134,9 @@ export default function PostForm({ onPostSuccess }: PostFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className={`p-4 border rounded-lg max-w-xl mx-auto transition-colors duration-300 ${containerClass}`}>
-      <h2 className={`text-xl font-semibold mt-2 mb-2 transition-colors duration-300 ${headingColor}`}>💪 トレーニング</h2>
+      <h2 className="text-2xl font-bold mb-4">🏋️‍♀️ 今日のトレーニングと食事を投稿</h2>
+
+      <h3 className={`text-xl font-semibold mt-6 mb-2 transition-colors duration-300 ${headingColor}`}>💪 トレーニング</h3>
       
       <div className="space-y-6">
         {formData.exercises.map((exercise, index) => (
