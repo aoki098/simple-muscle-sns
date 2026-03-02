@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "@/components/ThemeContext";
+// 💡 追加：ナビゲーション用のアイコンを呼び出す
+import { Home, Edit, BarChart2, Settings } from "lucide-react";
 
 export default function BottomNav() {
   const pathname = usePathname();
   const { theme } = useTheme();
 
-  // 下のメニューバーも真っ黒に！
   const navBgClass = theme === "light" ? "bg-white border-gray-200" : "bg-black border-gray-800 text-gray-400";
   
   const activeColor = 
@@ -16,11 +17,12 @@ export default function BottomNav() {
     theme === "dark-blue" ? "text-blue-500" : 
     "text-blue-600";
 
+  // 💡 変更：絵文字を消して、インポートしたアイコンコンポーネントをそのまま指定！
   const navItems = [
-    { name: "ホーム", path: "/", icon: "🏠" },
-    { name: "投稿", path: "/post", icon: "✍️" },
-    { name: "記録", path: "/records", icon: "📊" },
-    { name: "設定", path: "/settings", icon: "⚙️" },
+    { name: "ホーム", path: "/", icon: Home },
+    { name: "投稿", path: "/post", icon: Edit },
+    { name: "記録", path: "/records", icon: BarChart2 },
+    { name: "設定", path: "/settings", icon: Settings },
   ];
 
   return (
@@ -29,6 +31,8 @@ export default function BottomNav() {
         <div className="flex justify-between py-2">
           {navItems.map((item) => {
             const isActive = pathname === item.path;
+            const Icon = item.icon; // 💡 追加：アイコンコンポーネントを取り出す
+
             return (
               <Link
                 key={item.name}
@@ -37,7 +41,8 @@ export default function BottomNav() {
                   isActive ? activeColor : "hover:text-gray-600"
                 }`}
               >
-                <span className="text-2xl">{item.icon}</span>
+                {/* 💡 変更：アイコンコンポーネントを描画 */}
+                <Icon className="w-6 h-6" strokeWidth={isActive ? 2.5 : 2} />
                 <span className="text-[10px] font-bold">{item.name}</span>
               </Link>
             );

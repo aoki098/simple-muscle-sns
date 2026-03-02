@@ -1,80 +1,38 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { useState } from "react";
 import PostList from "@/components/PostList";
 import { useTheme } from "@/components/ThemeContext";
+import Link from "next/link";
+// 💡 追加：Plusアイコンを呼び出す
+import { Plus } from "lucide-react"; 
 
 export default function Home() {
+  const [refreshKey, setRefreshKey] = useState(0);
   const { theme } = useTheme();
-  const router = useRouter();
-  const [isLoading, setIsLoading] = useState(true);
-  
-  // 👤 ユーザーのプロフィール情報を保存する箱
-  const [profile, setProfile] = useState<{username: string, avatarUrl: string | null} | null>(null);
 
-  // 門番（ガード）＆プロフィール取得の処理
-  useEffect(() => {
-    const checkLoginAndFetchProfile = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        // ログインしていなかったら弾き返す
-        router.push("/login");
-      } else {
-        // ログインしていたら、Supabaseのprofilesテーブルから名前とアイコンを取得！
-        const { data } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
-
-        if (data) {
-          setProfile({
-            username: data.username,
-            avatarUrl: data.avatar_url
-          });
-        }
-        setIsLoading(false);
-      }
-    };
-    checkLoginAndFetchProfile();
-  }, [router]);
-
-  const headingColor = theme === "light" ? "text-gray-800" : "text-white";
-
-  if (isLoading) {
-    return <main className="min-h-screen flex items-center justify-center">Loading...</main>;
-  }
+  const containerClass = theme === "light" ? "bg-white text-gray-900" : "bg-black text-gray-100";
+  // 💡 ダークモード（赤）の判定を追加
+  const isRed = theme === "dark-red"; 
+  const btnColor = isRed ? "bg-red-600 hover:bg-red-700" : "bg-blue-600 hover:bg-blue-700";
 
   return (
-    <main className="min-h-screen py-8 px-4 transition-colors duration-300 pb-24 relative">
-      
-      {/* ✨ 追加：画面左上のプロフィール表示エリア */}
-      <div className="absolute top-6 left-4 flex items-center space-x-3">
-        <div className={`w-10 h-10 rounded-full flex items-center justify-center overflow-hidden shadow-md ${theme === 'light' ? 'bg-gray-200' : 'bg-gray-800 border border-gray-700'}`}>
-          {profile?.avatarUrl ? (
-            <img src={profile.avatarUrl} alt="icon" className="w-full h-full object-cover" />
-          ) : (
-            <span className="text-lg">🦍</span>
-          )}
-        </div>
-        <div className="flex flex-col">
-          <span className={`text-[10px] opacity-70 ${headingColor}`}>ようこそ</span>
-          <span className={`text-sm font-bold ${headingColor}`}>
-            {profile?.username || "名無しトレーニー"}
-          </span>
-        </div>
-      </div>
+    <main className={`min-h-screen p-4 transition-colors duration-300 ${containerClass}`}>
+      <div className="max-w-md mx-auto relative pt-2">
 
-      {/* タイトルがアイコンと被らないように mt-8 (マージントップ) を追加しています */}
-      <h1 className={`text-3xl font-extrabold text-center mt-8 mb-6 transition-colors duration-300 ${headingColor}`}>
-        🏠 タイムライン
-      </h1>
+        <h1 className="text-xl font-extrabold mb-6 border-b border-gray-700/50 pb-2">
+          タイムライン
+        </h1>
 
-      <div>
-        <PostList refreshKey={0} />
+        <PostList refreshKey={refreshKey} />
+
+        {/* 💡 変更：全角の「＋」から、美しいSVGのPlusアイコンに！さらにテーマ色にも対応！ */}
+        <Link
+          href="/post"
+          className={`fixed bottom-24 right-4 w-14 h-14 text-white rounded-full shadow-[0_4px_15px_rgba(0,0,0,0.3)] flex items-center justify-center transition-transform active:scale-90 z-40 ${btnColor}`}
+        >
+          <Plus className="w-8 h-8" strokeWidth={2.5} />
+        </Link>
       </div>
     </main>
   );
