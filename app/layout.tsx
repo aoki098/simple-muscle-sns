@@ -1,16 +1,16 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import "./globals.css"; 
+import "./globals.css";
 import BottomNav from "@/components/BottomNav";
-
-// 👇 さっき作った魔法の箱をインポート
 import { ThemeProvider } from "@/components/ThemeContext";
+// 💡 追加：さっき作った Header を読み込む
+import Header from "@/components/Header"; 
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "筋トレ記録アプリ",
-  description: "日々のトレーニングとPFCを記録しよう",
+  title: "Muscle App",
+  description: "筋トレ記録SNS",
 };
 
 export default function RootLayout({
@@ -20,15 +20,18 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ja">
-      {/* transition-colors を入れると、色がフワッと切り替わってカッコいいです */}
-      <body className={`${inter.className} pb-20 transition-colors duration-300`}>
-        
-        {/* 👇 アプリ全体を ThemeProvider で包み込む！ */}
+      <body className={inter.className}>
         <ThemeProvider>
-          {children}
+          {/* 💡 追加：全画面の左上にアイコンを出すために配置 */}
+          <Header />
+          
+          {/* 左上のアイコンと中身が被らないように、少し上に余白（pt-16）を空けておく */}
+          <div className="pb-20 pt-16 min-h-screen">
+            {children}
+          </div>
+          
           <BottomNav />
         </ThemeProvider>
-        
       </body>
     </html>
   );
