@@ -4,8 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import PostList from "@/components/PostList";
 import { useTheme } from "@/components/ThemeContext";
-// 💡 追加：記録ページで使うアイコンたちを呼び出す
-import { BarChart3, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 export default function RecordsPage() {
   const { theme } = useTheme();
@@ -21,25 +20,24 @@ export default function RecordsPage() {
     fetchUser();
   }, []);
 
-  const headingColor = theme === "light" ? "text-gray-800" : "text-white";
+  const containerClass = theme === "light" ? "bg-white text-gray-900" : "bg-black text-gray-100";
 
   return (
-    <main className="min-h-screen py-8 px-4 transition-colors duration-300 pb-24">
-      {/* 💡 変更：見出しの絵文字を消して <BarChart3 /> に！ */}
-      <h1 className={`text-2xl font-bold flex items-center justify-center gap-2 mb-6 transition-colors duration-300 ${headingColor}`}>
-        <BarChart3 className="w-7 h-7 text-blue-500" />
-        自分の記録
-      </h1>
+    <main className={`min-h-screen transition-colors duration-300 ${containerClass}`}>
+      {/* 💡 pt-20 を設定して、固定ヘッダーの下からリストが始まるように調整しました */}
+      <div className="w-full px-4 pt-20">
 
-      {myUserId ? (
-        <PostList refreshKey={0} userId={myUserId} />
-      ) : (
-        /* 💡 変更：読み込み中のゴリラを「くるくるスピナー（Loader2）」に！ */
-        <div className="flex flex-col items-center justify-center py-10 opacity-70">
-          <Loader2 className="w-8 h-8 animate-spin mb-2" />
-          <span className="font-bold text-sm">ユーザー情報を確認中...</span>
-        </div>
-      )}
+        {/* 💡 ここにあった大きな <h1>自分の記録</h1> は削除しました！ */}
+
+        {myUserId ? (
+          <PostList refreshKey={0} userId={myUserId} />
+        ) : (
+          <div className="flex flex-col items-center justify-center py-10 opacity-70">
+            <Loader2 className="w-8 h-8 animate-spin mb-2" />
+            <span className="font-bold text-sm">ユーザー情報を確認中...</span>
+          </div>
+        )}
+      </div>
     </main>
   );
 }

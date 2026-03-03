@@ -77,19 +77,19 @@ export default function PostPage() {
   const buttonClass = theme === "dark-red" ? "bg-red-700 hover:bg-red-800" : "bg-blue-600 hover:bg-blue-700";
 
   return (
-    <main className="min-h-screen py-8 px-4 transition-colors duration-300 pb-24">
-      <div className={`max-w-xl mx-auto p-6 rounded-lg shadow-md ${containerClass}`}>
+    <main className="min-h-screen py-0 px-0 transition-colors duration-300 pb-24">
+      <div className={`max-w-xl mx-auto px-6 pt-3 pb-6 rounded-lg shadow-md ${containerClass}`}>
         
         {/* 💡 変更：見出しの絵文字を消して <Dumbbell /> に！ */}
-        <h1 className="text-2xl font-bold mb-6 flex items-center justify-center gap-2">
-          <Dumbbell className="w-7 h-7 text-gray-500" />
+        <h1 className="text-xl font-bold mb-0 flex items-center justify-center gap-2">
+          <Dumbbell className="w-6 h-6 text-gray-500" />
           筋トレ＆食事記録
         </h1>
         
         <div className="space-y-6">
           <div>
             <label className="block text-sm font-bold mb-2">日付</label>
-            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={`w-full rounded-md border p-3 ${inputClass}`} />
+            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={`w-full rounded-md border p-2 ${inputClass}`} />
           </div>
 
           <div className="border-t border-gray-700 pt-4">
@@ -110,11 +110,11 @@ export default function PostPage() {
 
           <div className="border-t border-gray-700 pt-4">
             {/* 💡 変更：見出しの絵文字を消して <Utensils /> に！ */}
-            <h2 className="text-lg font-bold mb-3 flex items-center gap-2">
+            <h2 className="text-lg font-bold mb-0 flex items-center gap-2">
               <Utensils className="w-5 h-5 text-yellow-500" />
               食事・PFC
             </h2>
-            <div className="grid grid-cols-4 gap-2 mb-3">
+            <div className="grid grid-cols-4 gap-2 mb-2">
               <div><label className="text-xs">kcal</label><input type="number" value={mealCalories} onChange={(e) => setMealCalories(Number(e.target.value))} className={`w-full rounded-md border p-2 ${inputClass}`} /></div>
               <div><label className="text-xs">P (タンパク質)</label><input type="number" value={mealProtein} onChange={(e) => setMealProtein(Number(e.target.value))} className={`w-full rounded-md border p-2 ${inputClass}`} /></div>
               <div><label className="text-xs">F (脂質)</label><input type="number" value={mealFat} onChange={(e) => setMealFat(Number(e.target.value))} className={`w-full rounded-md border p-2 ${inputClass}`} /></div>
