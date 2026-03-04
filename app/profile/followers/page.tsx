@@ -7,11 +7,15 @@ import Link from "next/link";
 import { ArrowLeft, User, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
+// 💡 1. こちらも同じように型を追加！
 type Profile = {
   id: string;
   username: string;
   avatar_url: string | null;
   bio: string | null;
+  posts_count?: number;
+  followers_count?: number;
+  following_count?: number;
 };
 
 export default function FollowersPage() {
@@ -29,7 +33,7 @@ export default function FollowersPage() {
         return;
       }
 
-      // 💡 1. 自分をフォローしてくれている人（follower_id）のリストを取得
+      // 自分をフォローしてくれている人（follower_id）のリストを取得
       const { data: follows } = await supabase
         .from("follows")
         .select("follower_id")
@@ -38,14 +42,41 @@ export default function FollowersPage() {
       if (follows && follows.length > 0) {
         const followerIds = follows.map(f => f.follower_id);
         
-        // 💡 2. そのIDを持つユーザーのプロフィールをごっそり取得！
+        // そのIDを持つユーザーのプロフィールをごっそり取得
         const { data: profiles } = await supabase
           .from("profiles")
           .select("id, username, avatar_url, bio")
           .in("id", followerIds);
           
         if (profiles) {
-          setUsers(profiles);
+          // 💡 2. こちらも全員分のカウントを並行して取得！
+          const profilesWithCounts = await Promise.all(
+            profiles.map(async (p) => {
+              const { count: postsCount } = await supabase
+                .from("posts")
+                .select("*", { count: "exact", head: true })
+                .eq("user_id", p.id);
+                
+              const { count: followersCount } = await supabase
+                .from("follows")
+                .select("*", { count: "exact", head: true })
+                .eq("following_id", p.id);
+                
+              const { count: followingCount } = await supabase
+                .from("follows")
+                .select("*", { count: "exact", head: true })
+                .eq("follower_id", p.id);
+                
+              return {
+                ...p,
+                posts_count: postsCount || 0,
+                followers_count: followersCount || 0,
+                following_count: followingCount || 0
+              };
+            })
+          );
+          
+          setUsers(profilesWithCounts);
         }
       } else {
         setUsers([]); // フォロワーがいなければ空っぽにする
@@ -58,7 +89,7 @@ export default function FollowersPage() {
   }, [router]);
 
   const containerClass = theme === "light" ? "bg-gray-50 text-gray-900" : "bg-gray-950 text-gray-100";
-  const cardClass = theme === "light" ? "bg-white border-gray-200" : "bg-black border-gray-800 text-gray-100";
+  const cardClass = theme === "light" ? "bg-white border-gray-200 hover:bg-gray-50" : "bg-black border-gray-800 text-gray-100 hover:bg-gray-900";
 
   return (
     <main className={`min-h-screen transition-colors duration-300 ${containerClass} pb-24`}>
@@ -80,21 +111,32 @@ export default function FollowersPage() {
         ) : (
           <div className="space-y-4">
             {users.map((user) => (
-              <div key={user.id} className={`flex items-center justify-between p-4 rounded-xl border shadow-sm ${cardClass}`}>
-                <div className="flex items-center space-x-3">
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center overflow-hidden border border-gray-500/30 ${theme === 'light' ? 'bg-gray-200' : 'bg-gray-800'}`}>
+              // 💡 3. こちらもカード全体を <Link> に変更！
+              <Link 
+                href={`/profile/${user.id}`} 
+                key={user.id} 
+                className={`block p-4 rounded-xl border shadow-sm transition-colors ${cardClass}`}
+              >
+                <div className="flex items-center space-x-4">
+                  <div className={`w-14 h-14 rounded-full flex items-center justify-center overflow-hidden border border-gray-500/30 shrink-0 ${theme === 'light' ? 'bg-gray-200' : 'bg-gray-800'}`}>
                     {user.avatar_url ? (
                       <img src={user.avatar_url} alt="icon" className="w-full h-full object-cover" />
                     ) : (
-                      <User className="w-6 h-6 text-gray-400" />
+                      <User className="w-7 h-7 text-gray-400" />
                     )}
                   </div>
-                  <div>
-                    <p className="font-bold">{user.username || "名無し"}</p>
-                    {user.bio && <p className="text-xs opacity-70 mt-0.5 line-clamp-1">{user.bio}</p>}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold truncate">{user.username || "名無し"}</p>
+                    {user.bio && <p className="text-xs opacity-70 mt-0.5 truncate">{user.bio}</p>}
+                    
+                    <div className="flex items-center space-x-3 mt-1.5 text-xs font-medium opacity-80">
+                      <span><span className="font-bold">{user.posts_count}</span> 投稿</span>
+                      <span><span className="font-bold">{user.followers_count}</span> フォロワー</span>
+                      <span><span className="font-bold">{user.following_count}</span> フォロー中</span>
+                    </div>
                   </div>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         )}

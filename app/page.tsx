@@ -16,7 +16,6 @@ export default function Home() {
 
   return (
     <main className={`min-h-screen transition-colors duration-300 ${containerClass}`}>
-      {/* 💡 pt-20 にして、固定ヘッダーの下から投稿リストが始まるようにしました */}
       <div className="max-w-md mx-auto relative px-4 pt-20 pb-20">
 
         <PostList refreshKey={refreshKey} />
