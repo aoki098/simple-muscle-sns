@@ -3,10 +3,20 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useTheme } from "@/components/ThemeContext";
-import { Utensils, User, Loader2, Heart, MoreHorizontal, Trash2, Lock } from "lucide-react";
+import { 
+  User, Loader2, Heart, MessageCircle, Send, Lock, MoreHorizontal, Trash2
+} from "lucide-react";
 import Link from "next/link";
 
 type Exercise = { name: string; weight: number; details: string };
+
+type Comment = {
+  id: string;
+  user_id: string;
+  content: string;
+  created_at: string;
+  profiles: { username: string; avatar_url: string | null; };
+};
 
 type Post = {
   id: string;
@@ -18,10 +28,11 @@ type Post = {
   meal_fat: number;
   meal_carbs: number;
   meal_details: string;
-  image_url: string | null; // 💡 ① 画像URLを保存する箱を追加！
+  image_url: string | null;
   created_at: string;
   profiles: { username: string; avatar_url: string | null; is_private: boolean; } | null;
   likes: { user_id: string }[];
+  comments: Comment[];
 };
 
 export default function PostList({ refreshKey, userId }: { refreshKey: number; userId?: string }) {
@@ -31,64 +42,94 @@ export default function PostList({ refreshKey, userId }: { refreshKey: number; u
   const { theme } = useTheme();
   
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
-  
+  const [openCommentId, setOpenCommentId] = useState<string | null>(null);
+  const [commentText, setCommentText] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // フォロー状態の管理
   const [followingIds, setFollowingIds] = useState<string[]>([]);
   const [pendingIds, setPendingIds] = useState<string[]>([]);
 
   useEffect(() => {
     const fetchPosts = async () => {
       setIsLoading(true);
-
       const { data: { user } } = await supabase.auth.getUser();
-      let currentFollowingIds: string[] = [];
-
       if (user) {
         setCurrentUserId(user.id);
-        
-        const { data: followData } = await supabase
-          .from("follows")
-          .select("following_id, status")
-          .eq("follower_id", user.id);
-          
+        const { data: followData } = await supabase.from("follows").select("following_id, status").eq("follower_id", user.id);
         if (followData) {
-          const accepted = followData.filter(f => f.status === 'accepted').map(f => f.following_id);
-          const pending = followData.filter(f => f.status === 'pending').map(f => f.following_id);
-          
-          setFollowingIds(accepted);
-          setPendingIds(pending);
-          currentFollowingIds = accepted; 
+          setFollowingIds(followData.filter(f => f.status === 'accepted').map(f => f.following_id));
+          setPendingIds(followData.filter(f => f.status === 'pending').map(f => f.following_id));
         }
       }
       
-      // 💡 ② select文に image_url を追加！
       let query = supabase
         .from("posts")
         .select(`
           id, user_id, date, exercises, meal_calories, meal_protein, meal_fat, meal_carbs, meal_details, image_url, created_at, 
           profiles(username, avatar_url, is_private),
-          likes(user_id)
+          likes(user_id),
+          comments(
+            id, content, created_at, user_id, 
+            profiles:user_id(username, avatar_url)
+          )
         `)
         .order("created_at", { ascending: false });
 
-      if (userId) {
-        query = query.eq("user_id", userId);
-      } else if (user) {
-        const targetIds = [user.id, ...currentFollowingIds];
-        query = query.in("user_id", targetIds);
-      }
-
+      if (userId) query = query.eq("user_id", userId);
       const { data, error } = await query;
-      if (!error && data) setPosts(data as any);
-      
+      if (data) {
+        setPosts(data.map((p: any) => ({
+          ...p,
+          exercises: p.exercises || [],
+          likes: p.likes || [],
+          comments: p.comments || []
+        })) as any);
+      }
       setIsLoading(false);
     };
-    
     fetchPosts();
   }, [refreshKey, userId]);
 
+  const sendNotification = async (receiverId: string, type: string, postId?: string) => {
+    if (!currentUserId || receiverId === currentUserId) return;
+    await supabase.from("notifications").insert({ user_id: receiverId, actor_id: currentUserId, type, post_id: postId });
+  };
+
+  const toggleLike = async (postId: string, isLikedByMe: boolean, ownerId: string) => {
+    if (!currentUserId) return;
+    setPosts(posts.map(p => {
+      if (p.id === postId) {
+        const newLikes = isLikedByMe ? p.likes.filter(l => l.user_id !== currentUserId) : [...p.likes, { user_id: currentUserId }];
+        return { ...p, likes: newLikes };
+      }
+      return p;
+    }));
+    if (isLikedByMe) await supabase.from("likes").delete().match({ user_id: currentUserId, post_id: postId });
+    else {
+      await supabase.from("likes").insert({ user_id: currentUserId, post_id: postId });
+      await sendNotification(ownerId, 'like', postId);
+    }
+  };
+
+  const handleAddComment = async (postId: string, ownerId: string) => {
+    if (!currentUserId || !commentText.trim()) return;
+    setIsSubmitting(true);
+    const { data, error } = await supabase
+      .from("comments")
+      .insert([{ post_id: postId, user_id: currentUserId, content: commentText.trim() }])
+      .select(`id, content, created_at, user_id, profiles:user_id(username, avatar_url)`)
+      .single();
+    if (!error && data) {
+      setPosts(posts.map(p => p.id === postId ? { ...p, comments: [...p.comments, data as any] } : p));
+      setCommentText("");
+      await sendNotification(ownerId, 'comment', postId);
+    }
+    setIsSubmitting(false);
+  };
+
   const toggleFollow = async (targetUserId: string, isPrivate: boolean = false) => {
     if (!currentUserId) return;
-
     const isFollowing = followingIds.includes(targetUserId);
     const isPending = pendingIds.includes(targetUserId);
 
@@ -97,147 +138,74 @@ export default function PostList({ refreshKey, userId }: { refreshKey: number; u
       setPendingIds(prev => prev.filter(id => id !== targetUserId));
       await supabase.from("follows").delete().match({ follower_id: currentUserId, following_id: targetUserId });
     } else {
-      const newStatus = isPrivate ? 'pending' : 'accepted';
-      
-      if (isPrivate) {
-        setPendingIds(prev => [...prev, targetUserId]);
-      } else {
-        setFollowingIds(prev => [...prev, targetUserId]);
-      }
-      
-      await supabase.from("follows").insert({ 
-        follower_id: currentUserId, 
-        following_id: targetUserId,
-        status: newStatus
-      });
-    }
-  };
-
-  const toggleLike = async (postId: string, isLikedByMe: boolean) => {
-    if (!currentUserId) return;
-
-    setPosts(posts.map(post => {
-      if (post.id === postId) {
-        const currentLikes = post.likes || [];
-        const newLikes = isLikedByMe
-          ? currentLikes.filter(l => l.user_id !== currentUserId)
-          : [...currentLikes, { user_id: currentUserId }];
-        return { ...post, likes: newLikes };
-      }
-      return post;
-    }));
-
-    if (isLikedByMe) {
-      await supabase.from("likes").delete().match({ user_id: currentUserId, post_id: postId });
-    } else {
-      await supabase.from("likes").insert({ user_id: currentUserId, post_id: postId });
+      const status = isPrivate ? 'pending' : 'accepted';
+      if (isPrivate) setPendingIds(prev => [...prev, targetUserId]);
+      else setFollowingIds(prev => [...prev, targetUserId]);
+      await supabase.from("follows").insert({ follower_id: currentUserId, following_id: targetUserId, status });
+      await sendNotification(targetUserId, status === 'pending' ? 'pending' : 'accepted');
     }
   };
 
   const handleDelete = async (postId: string) => {
     if (!window.confirm("本当にこの記録を削除しますか？")) return;
-
     const { error } = await supabase.from("posts").delete().eq("id", postId);
-
-    if (error) {
-      alert(`❌ 削除エラー: ${error.message}`);
-    } else {
-      setPosts(posts.filter(post => post.id !== postId));
-    }
+    if (!error) setPosts(posts.filter(p => p.id !== postId));
   };
 
   const cardClass = theme === "light" ? "bg-white text-gray-900 border-gray-200" : "bg-black text-gray-100 border-gray-800";
-  const dateColor = theme === "light" ? "text-gray-500" : "text-gray-400";
-  const macroClass = theme === "light" ? "bg-gray-100" : "bg-gray-900";
+  const macroClass = theme === "light" ? "bg-gray-100 text-gray-800" : "bg-gray-900 text-gray-300";
 
-  if (isLoading) return (
-    <div className="flex flex-col items-center justify-center py-10 opacity-70">
-      <Loader2 className="w-8 h-8 animate-spin mb-2" />
-      <span className="font-bold text-sm">読み込み中...</span>
-    </div>
-  );
-  
+  if (isLoading) return <div className="py-10 text-center"><Loader2 className="animate-spin mx-auto w-8 h-8" /></div>;
   if (posts.length === 0) return <div className="text-center py-10 opacity-70 font-bold">まだ記録がありません。</div>;
 
   return (
     <div className="space-y-6">
       {posts.map((post) => {
-        const safeLikes = post.likes || [];
-        const isLikedByMe = safeLikes.some(like => like.user_id === currentUserId);
-        const likeCount = safeLikes.length;
+        const isLikedByMe = post.likes.some(l => l.user_id === currentUserId);
         const isMyPost = currentUserId === post.user_id;
-        const isPrivate = post.profiles?.is_private || false;
 
         return (
-          <div key={post.id} className={`p-5 rounded-xl shadow-md transition-colors duration-300 border ${cardClass}`}>
-            
+          <div key={post.id} className={`p-5 rounded-xl border shadow-md ${cardClass}`}>
+            {/* ヘッダー */}
             <div className="flex justify-between items-center mb-4 border-b border-gray-700/50 pb-3">
-              
-              <Link href={`/profile/${post.user_id}`} className="flex items-center space-x-3 hover:opacity-70 transition-opacity">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center overflow-hidden border border-gray-500/30 ${theme === 'light' ? 'bg-gray-200' : 'bg-gray-800'}`}>
-                  {post.profiles?.avatar_url ? <img src={post.profiles.avatar_url} alt="icon" className="w-full h-full object-cover" /> : <User className="w-6 h-6 text-gray-400" />}
+              <Link href={`/profile/${post.user_id}`} className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-500/30 bg-gray-800">
+                  {post.profiles?.avatar_url ? <img src={post.profiles.avatar_url} className="w-full h-full object-cover" /> : <User className="w-6 h-6 m-2 text-gray-400" />}
                 </div>
-                
-                <div className="flex items-center">
-                  <span className="font-bold text-sm">{post.profiles?.username || "名無し"}</span>
-                  {isPrivate && (
-                    <Lock className="w-3.5 h-3.5 ml-1.5 text-gray-500" strokeWidth={2.5} />
-                  )}
-                </div>
+                <span className="font-bold text-sm">{post.profiles?.username || "名無し"}</span>
               </Link>
               
-              <div className="flex items-center gap-3 relative">
-                <div className={`text-sm font-bold ${dateColor}`}>{post.date}</div>
-
-                <button 
-                  onClick={() => toggleLike(post.id, isLikedByMe)}
-                  className={`flex items-center gap-1 transition-transform active:scale-90 ${isLikedByMe ? "text-red-500" : "text-gray-500 hover:text-red-400"}`}
-                >
+              <div className="flex items-center gap-4 text-gray-500 relative">
+                <span className="text-xs font-bold opacity-50">{post.date}</span>
+                
+                <button onClick={() => toggleLike(post.id, isLikedByMe, post.user_id)}>
                   <Heart className={`w-5 h-5 ${isLikedByMe ? "fill-red-500 text-red-500" : ""}`} />
-                  {likeCount > 0 && <span className="font-bold text-sm">{likeCount}</span>}
+                </button>
+                
+                <button onClick={() => setOpenCommentId(openCommentId === post.id ? null : post.id)}>
+                  <MessageCircle className="w-5 h-5 hover:text-blue-500 transition-colors" />
                 </button>
 
-                <button 
-                  onClick={() => setOpenMenuId(openMenuId === post.id ? null : post.id)}
-                  className="p-1.5 hover:bg-gray-700/50 rounded-full transition-colors"
-                >
+                <button onClick={() => setOpenMenuId(openMenuId === post.id ? null : post.id)} className="p-1 hover:bg-gray-700/30 rounded-full">
                   <MoreHorizontal className="w-5 h-5 text-gray-400" />
                 </button>
 
                 {openMenuId === post.id && (
                   <div className="absolute top-8 right-0 w-48 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50 overflow-hidden">
-                    
                     {!isMyPost && (
-                      followingIds.includes(post.user_id) ? (
-                        <button 
-                          onClick={() => { toggleFollow(post.user_id, isPrivate); setOpenMenuId(null); }}
-                          className="w-full text-left px-4 py-3 text-sm font-bold text-red-400 hover:bg-gray-700 transition-colors"
-                        >
-                          ➖ フォローを外す
-                        </button>
-                      ) : pendingIds.includes(post.user_id) ? (
-                        <button 
-                          onClick={() => { toggleFollow(post.user_id, isPrivate); setOpenMenuId(null); }}
-                          className="w-full text-left px-4 py-3 text-sm font-bold text-gray-400 hover:bg-gray-700 transition-colors"
-                        >
-                          ⏳ リクエスト送信済み
-                        </button>
-                      ) : (
-                        <button 
-                          onClick={() => { toggleFollow(post.user_id, isPrivate); setOpenMenuId(null); }}
-                          className="w-full text-left px-4 py-3 text-sm font-bold text-white hover:bg-gray-700 transition-colors"
-                        >
-                          {isPrivate ? "🔒 鍵垢にリクエスト" : "➕ フォローする"}
-                        </button>
-                      )
+                      <button 
+                        onClick={() => { toggleFollow(post.user_id, post.profiles?.is_private); setOpenMenuId(null); }} 
+                        className="w-full text-left px-4 py-3 text-sm font-bold text-white hover:bg-gray-700"
+                      >
+                        {followingIds.includes(post.user_id) ? "➖ フォロー解除" : pendingIds.includes(post.user_id) ? "⏳ 申請中" : "➕ フォローする"}
+                      </button>
                     )}
-
                     {isMyPost && (
                       <button 
                         onClick={() => { handleDelete(post.id); setOpenMenuId(null); }} 
-                        className="w-full text-left px-4 py-3 text-sm font-bold text-red-500 hover:bg-gray-700 border-t border-gray-700/50 transition-colors flex items-center gap-2"
+                        className="w-full text-left px-4 py-3 text-sm font-bold text-red-500 hover:bg-gray-700 flex items-center gap-2"
                       >
-                        <Trash2 className="w-4 h-4" /> 投稿を削除する
+                        <Trash2 className="w-4 h-4" /> 削除する
                       </button>
                     )}
                   </div>
@@ -245,46 +213,114 @@ export default function PostList({ refreshKey, userId }: { refreshKey: number; u
               </div>
             </div>
 
-            {/* Workout */}
-            {post.exercises && post.exercises.length > 0 && (
-              <div className="mb-4">
-                <h3 className="text-xs font-bold opacity-70 mb-2 uppercase tracking-wider">Workout</h3>
-                <ul className="space-y-2">
-                  {post.exercises.map((ex, idx) => (
-                    <li key={idx} className="flex justify-between text-sm border-l-2 border-blue-500 pl-2">
-                      <span className="font-bold">{ex.name}</span>
-                      <span className="opacity-80">{ex.weight ? `${ex.weight}kg` : ''} {ex.details}</span>
-                    </li>
+            {/* コンテンツエリア */}
+            <div className="space-y-6">
+              {/* ① ワークアウト */}
+              {post.exercises.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="text-[10px] font-bold opacity-50 uppercase tracking-tighter">Workout</h3>
+                  {post.exercises.map((ex, i) => (
+                    <div key={i} className="border-l-2 border-blue-500 pl-3 py-1">
+                      <div className="flex justify-between items-center">
+                        <span className="font-bold text-sm">{ex.name}</span>
+                        <div className="text-xs">
+                          <span className="opacity-50 mr-1 text-[10px]">最大重量:</span>
+                          <span className="font-black text-blue-400 text-sm">{ex.weight ? `${ex.weight}kg` : '-'}</span>
+                        </div>
+                      </div>
+                      {ex.details && <p className="text-xs opacity-70 mt-1 text-gray-400">📝 {ex.details}</p>}
+                    </div>
                   ))}
-                </ul>
-              </div>
-            )}
+                </div>
+              )}
 
-            {/* Diet */}
-            {(post.meal_calories > 0 || post.meal_details) && (
-              <div className="mb-4">
-                <h3 className="text-xs font-bold opacity-70 mb-2 uppercase tracking-wider">Diet</h3>
-                {post.meal_calories > 0 && (
-                  <div className={`flex flex-wrap gap-2 justify-between items-center text-xs font-bold p-2.5 rounded-md mb-2 ${macroClass}`}>
-                    <span className="flex items-center gap-1">
-                      <Utensils className="w-4 h-4 text-gray-500" />{post.meal_calories}kcal
-                    </span>
-                    <span className="text-red-400">P(タンパク質): {post.meal_protein}g</span>
-                    <span className="text-yellow-400">F(脂質): {post.meal_fat}g</span>
-                    <span className="text-blue-400">C(炭水化物): {post.meal_carbs}g</span>
-                  </div>
-                )}
-                {post.meal_details && <p className="text-sm whitespace-pre-wrap opacity-90 pl-1">{post.meal_details}</p>}
-              </div>
-            )}
-            
-            {/* 💡 ③ ここに追加！画像URLがあれば表示する筋肉！ */}
-            {post.image_url && (
-              <div className="mt-3 rounded-xl overflow-hidden border border-gray-700/50">
-                <img src={post.image_url} alt="Post image" className="w-full h-auto object-cover max-h-96" loading="lazy" />
-              </div>
-            )}
+              {/* ② 食事 */}
+              {(post.meal_calories > 0 || post.meal_details) && (
+                <div className="space-y-2">
+                  <h3 className="text-[10px] font-bold opacity-50 uppercase tracking-tighter">Diet</h3>
+                  {post.meal_calories > 0 && (
+                    <div className={`flex justify-between text-[11px] font-bold p-3 rounded-lg ${macroClass}`}>
+                      <span>🔥 {post.meal_calories}kcal</span>
+                      <span>P: {post.meal_protein}g F: {post.meal_fat}g C: {post.meal_carbs}g</span>
+                    </div>
+                  )}
+                  {post.meal_details && (
+                    <div className="pt-1">
+                      <p className="text-sm opacity-90 whitespace-pre-wrap pl-3 border-l-2 border-green-500/50 leading-relaxed bg-gray-800/10 py-1.5 rounded-r">
+                        {post.meal_details}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
 
+              {/* ③ 写真 */}
+              {post.image_url && (
+                <div className="mt-2 rounded-xl overflow-hidden border border-gray-800 bg-black/20">
+                  <img src={post.image_url} className="w-full h-auto object-contain max-h-[500px] mx-auto" alt="Post" />
+                </div>
+              )}
+            </div>
+
+            {/* 💬 進化したコメントセクション 💬 */}
+            {openCommentId === post.id && (
+              <div className="mt-4 pt-4 border-t border-gray-800 space-y-3">
+                {/* コメント一覧エリア */}
+                <div className="max-h-48 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+                  {post.comments.map((comment) => (
+                    <div key={comment.id} className="flex flex-col gap-1 p-2 bg-gray-800/40 rounded-lg">
+                      <div className="flex justify-between items-center">
+                        {/* 💡 ユーザー名とアイコンをプロフへのリンク化！！ */}
+                        <Link href={`/profile/${comment.user_id}`} className="flex items-center gap-2 hover:opacity-70 transition-opacity">
+                          <div className="w-5 h-5 rounded-full bg-gray-700 overflow-hidden shrink-0">
+                            {comment.profiles?.avatar_url ? (
+                              <img src={comment.profiles.avatar_url} className="w-full h-full object-cover" />
+                            ) : (
+                              <User className="w-3 h-3 m-1 text-gray-400" />
+                            )}
+                          </div>
+                          <span className="font-bold text-xs text-blue-400">{comment.profiles?.username || "名無し"}</span>
+                        </Link>
+                        
+                        {/* 💡 返信ボタン（メンション入力）を追加！！ */}
+                        <button 
+                          onClick={() => setCommentText(`@${comment.profiles?.username} `)}
+                          className="text-[10px] font-bold text-gray-500 hover:text-white transition-colors"
+                        >
+                          返信
+                        </button>
+                      </div>
+                      {/* コメント本文 */}
+                      <p className="text-xs opacity-90 pl-7 leading-tight whitespace-pre-wrap">{comment.content}</p>
+                    </div>
+                  ))}
+                  {post.comments.length === 0 && <p className="text-xs text-center opacity-40 py-2 italic">最初のコメントをどうぞ！</p>}
+                </div>
+
+                {/* 入力エリア */}
+                <div className="flex gap-2 items-end">
+                  <textarea 
+                    value={commentText}
+                    onChange={(e) => setCommentText(e.target.value)}
+                    placeholder="ナイスバルク！"
+                    className="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-blue-500 resize-none h-10"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        handleAddComment(post.id, post.user_id);
+                      }
+                    }}
+                  />
+                  <button 
+                    disabled={isSubmitting || !commentText.trim()}
+                    onClick={() => handleAddComment(post.id, post.user_id)} 
+                    className="text-white bg-blue-600 p-2 rounded-lg hover:bg-blue-500 transition-colors disabled:opacity-50 h-10"
+                  >
+                    {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         );
       })}
