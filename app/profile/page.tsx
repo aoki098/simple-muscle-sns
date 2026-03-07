@@ -152,7 +152,7 @@ export default function ProfilePage() {
 
   const btnSolidClass = isRed ? "bg-red-600 hover:bg-red-700" : "bg-blue-600 hover:bg-blue-700";
 
-  if (isLoading && !profile) return <div className="min-h-screen flex items-center justify-center font-bold opacity-70 text-white">読み込み中...🦍</div>;
+  if (isLoading && !profile) return <div className="min-h-screen flex items-center justify-center font-bold opacity-70 text-white">読み込み中...</div>;
 
   return (
     <main className={`min-h-screen p-4 transition-colors duration-300 ${containerClass} pb-24 relative overflow-hidden`}>
