@@ -159,7 +159,7 @@ export default function PostList({ refreshKey, userId }: { refreshKey: number; u
   if (posts.length === 0) return <div className="text-center py-10 opacity-70 font-bold">まだ記録がありません。</div>;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-0.5">
       {posts.map((post) => {
         const isLikedByMe = post.likes.some(l => l.user_id === currentUserId);
         const isMyPost = currentUserId === post.user_id;
@@ -167,7 +167,7 @@ export default function PostList({ refreshKey, userId }: { refreshKey: number; u
         return (
           <div key={post.id} className={`p-5 rounded-xl border shadow-md ${cardClass}`}>
             {/* ヘッダー */}
-            <div className="flex justify-between items-center mb-4 border-b border-gray-700/50 pb-3">
+            <div className="flex justify-between items-center mb-1 border-b border-gray-700/50 pb-2">
               <Link href={`/profile/${post.user_id}`} className="flex items-center space-x-3">
                 <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-500/30 bg-gray-800">
                   {post.profiles?.avatar_url ? <img src={post.profiles.avatar_url} className="w-full h-full object-cover" /> : <User className="w-6 h-6 m-2 text-gray-400" />}
@@ -214,11 +214,11 @@ export default function PostList({ refreshKey, userId }: { refreshKey: number; u
             </div>
 
             {/* コンテンツエリア */}
-            <div className="space-y-6">
+            <div className="space-y-2">
               {/* ① ワークアウト */}
               {post.exercises.length > 0 && (
-                <div className="space-y-3">
-                  <h3 className="text-[10px] font-bold opacity-50 uppercase tracking-tighter">Workout</h3>
+                <div className="space-y-0">
+                  <h3 className="text-[12px] font-bold opacity-50 uppercase tracking-tighter">筋トレ</h3>
                   {post.exercises.map((ex, i) => (
                     <div key={i} className="border-l-2 border-blue-500 pl-3 py-1">
                       <div className="flex justify-between items-center">
@@ -236,16 +236,31 @@ export default function PostList({ refreshKey, userId }: { refreshKey: number; u
 
               {/* ② 食事 */}
               {(post.meal_calories > 0 || post.meal_details) && (
-                <div className="space-y-2">
-                  <h3 className="text-[10px] font-bold opacity-50 uppercase tracking-tighter">Diet</h3>
+                <div className="space-y-0">
+                  <h3 className="text-[12px] font-bold opacity-50 uppercase tracking-tighter">食事</h3>
                   {post.meal_calories > 0 && (
-                    <div className={`flex justify-between text-[11px] font-bold p-3 rounded-lg ${macroClass}`}>
-                      <span>🔥 {post.meal_calories}kcal</span>
-                      <span>P: {post.meal_protein}g F: {post.meal_fat}g C: {post.meal_carbs}g</span>
-                    </div>
+                    <div className={`flex flex-wrap justify-between items-center w-full text-[11px] sm:text-xs font-bold p-3 rounded-lg gap-y-1 ${macroClass}`}>
+  {/* カロリー */}
+  <span>🍴 {post.meal_calories}kcal</span>
+  
+  {/* タンパク質（青色） */}
+  <span className="text-blue-600 dark:text-blue-400">
+    P(タンパク質): {post.meal_protein}g
+  </span>
+  
+  {/* 脂質（オレンジ色） */}
+  <span className="text-orange-500 dark:text-orange-400">
+    F(脂質): {post.meal_fat}g
+  </span>
+  
+  {/* 炭水化物（緑色） */}
+  <span className="text-green-600 dark:text-green-400">
+    C(炭水化物): {post.meal_carbs}g
+  </span>
+</div>
                   )}
                   {post.meal_details && (
-                    <div className="pt-1">
+                    <div className="pt-0">
                       <p className="text-sm opacity-90 whitespace-pre-wrap pl-3 border-l-2 border-green-500/50 leading-relaxed bg-gray-800/10 py-1.5 rounded-r">
                         {post.meal_details}
                       </p>
@@ -294,7 +309,7 @@ export default function PostList({ refreshKey, userId }: { refreshKey: number; u
                       <p className="text-xs opacity-90 pl-7 leading-tight whitespace-pre-wrap">{comment.content}</p>
                     </div>
                   ))}
-                  {post.comments.length === 0 && <p className="text-xs text-center opacity-40 py-2 italic">最初のコメントをどうぞ！</p>}
+                  {post.comments.length === 0 && <p className="text-xs text-center opacity-40 py-2 italic">コメント</p>}
                 </div>
 
                 {/* 入力エリア */}
@@ -302,7 +317,7 @@ export default function PostList({ refreshKey, userId }: { refreshKey: number; u
                   <textarea 
                     value={commentText}
                     onChange={(e) => setCommentText(e.target.value)}
-                    placeholder="ナイスバルク！"
+                    placeholder="コメントを入力してください"
                     className="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-blue-500 resize-none h-10"
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && !e.shiftKey) {

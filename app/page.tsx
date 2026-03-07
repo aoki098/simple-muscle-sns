@@ -16,7 +16,7 @@ export default function Home() {
 
   return (
     <main className={`min-h-screen transition-colors duration-300 ${containerClass}`}>
-      <div className="max-w-md mx-auto relative px-4 pt-20 pb-20">
+      <div className="max-w-xl mx-auto relative px-2 pt-3 pb-20">
 
         <PostList refreshKey={refreshKey} />
 

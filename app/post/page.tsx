@@ -3,7 +3,6 @@
 import { useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { useTheme } from "@/components/ThemeContext";
-// 💡 ImagePlus, X を追加しただけです！
 import { Dumbbell, Flame, Utensils, CheckCircle2, AlertCircle, Save, ImagePlus, X } from "lucide-react";
 
 type Exercise = { name: string; weight: number | ""; details: string };
@@ -19,7 +18,6 @@ export default function PostPage() {
   const [mealCarbs, setMealCarbs] = useState<number | "">("");
   const [mealDetails, setMealDetails] = useState("");
   
-  // 💡 画像用のState（裏側の筋肉だけ追加）
   const [postImage, setPostImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -42,6 +40,18 @@ export default function PostPage() {
     setIsPosting(true);
     setMessage("");
     setIsError(false);
+
+    // 💡 【ここが最強の門番！】空っぽの投稿をブロックする！！
+    const validExercises = exercises.filter(ex => ex.name.trim() !== "");
+    const hasMeal = Number(mealCalories) > 0 || mealDetails.trim() !== "";
+    const hasImage = postImage !== null;
+
+    if (validExercises.length === 0 && !hasMeal && !hasImage) {
+      setMessage("入力内容がありません");
+      setIsError(true);
+      setIsPosting(false);
+      return; // 🛑 ここで強制終了！データベースには絶対送らない！
+    }
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
@@ -75,7 +85,7 @@ export default function PostPage() {
         {
           user_id: user.id,
           date: date,
-          exercises: exercises.filter(ex => ex.name !== ""), 
+          exercises: validExercises, // 💡 空の種目は最初から除外して保存！
           meal_calories: mealCalories || 0,
           meal_protein: mealProtein || 0,
           meal_fat: mealFat || 0,
@@ -114,10 +124,8 @@ export default function PostPage() {
 
   return (
     <main className="min-h-screen py-0 px-0 transition-colors duration-300 pb-24">
-      {/* 💡 ここに relative を追加しただけで、他は1ミリも変えていません！ */}
       <div className={`max-w-xl mx-auto px-6 pt-4 pb-6 rounded-lg shadow-md relative ${containerClass}`}>
         
-        {/* 💡 写真追加ボタン（絶対配置で右上に浮かせているので、レイアウトを一切押し出しません） */}
         <button 
           onClick={() => fileInputRef.current?.click()}
           className="absolute top-3 right-5 p-1 text-gray-400 hover:text-gray-200 transition-colors"
@@ -126,7 +134,6 @@ export default function PostPage() {
           <ImagePlus className="w-7 h-7" />
         </button>
 
-        {/* 隠しファイル入力 */}
         <input 
           type="file" 
           accept="image/*" 
@@ -141,14 +148,12 @@ export default function PostPage() {
           }}
         />
 
-        {/* 💡 h1タグも青木さんの元のコードと完全一致です */}
         <h1 className="text-[21px] font-bold mb-0 flex items-center justify-center gap-2">
           <Dumbbell className="w-6 h-6 text-gray-500" />
           筋トレ＆食事記録
         </h1>
         
         <div className="space-y-4">
-          {/* 日付 */}
           <div className="mt-0">
             <label className="block text-sm font-bold mb-2">日付</label>
             <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={`w-full rounded-md border p-2 ${inputClass}`} />
@@ -183,7 +188,6 @@ export default function PostPage() {
             <textarea placeholder="食事のメモ" value={mealDetails} onChange={(e) => setMealDetails(e.target.value)} rows={2} className={`w-full rounded-md border p-3 ${inputClass}`} />
           </div>
 
-          {/* 💡 写真が選ばれた時だけ、保存ボタンの上にプレビューを表示（他の要素は崩れません） */}
           {previewUrl && (
             <div className="relative mt-2">
               <img src={previewUrl} alt="Preview" className="w-full h-auto max-h-64 object-contain rounded-md border border-gray-700 bg-black/20" />
@@ -202,7 +206,7 @@ export default function PostPage() {
           </button>
 
           {message && (
-            <p className={`flex items-center justify-center gap-1 font-bold text-sm ${isError ? "text-red-500" : "text-green-500"}`}>
+            <p className={`flex items-center justify-center gap-1 font-bold text-sm mt-2 ${isError ? "text-red-500" : "text-green-500"}`}>
               {isError ? <AlertCircle className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
               {message}
             </p>
