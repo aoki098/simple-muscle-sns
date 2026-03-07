@@ -96,7 +96,7 @@ export default function FollowingPage() {
 
   return (
     <main className={`min-h-screen transition-colors duration-300 ${containerClass} pb-24`}>
-      <div className="w-full px-4 pt-20">
+      <div className="w-full px-4 pt-0">
         <div className="flex items-center mb-6">
           <Link href="/profile" className="mr-4 p-2 hover:bg-gray-700/50 rounded-full transition-colors">
             <ArrowLeft className="w-6 h-6" />

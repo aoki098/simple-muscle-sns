@@ -4,9 +4,10 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useTheme } from "@/components/ThemeContext";
 import { 
-  User, Loader2, Heart, MessageCircle, Send, Lock, MoreHorizontal, Trash2
+  User, Loader2, Heart, MessageCircle, Send, Lock, MoreHorizontal, Trash2, Share2 // 💡 Share2 に変更！
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 type Exercise = { name: string; weight: number; details: string };
 
@@ -35,7 +36,8 @@ type Post = {
   comments: Comment[];
 };
 
-export default function PostList({ refreshKey, userId }: { refreshKey: number; userId?: string }) {
+export default function PostList({ refreshKey, userId, singlePostId }: { refreshKey?: number; userId?: string; singlePostId?: string }) {
+  const router = useRouter();
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -76,7 +78,12 @@ export default function PostList({ refreshKey, userId }: { refreshKey: number; u
         `)
         .order("created_at", { ascending: false });
 
-      if (userId) query = query.eq("user_id", userId);
+      if (singlePostId) {
+        query = query.eq("id", singlePostId);
+      } else if (userId) {
+        query = query.eq("user_id", userId);
+      }
+
       const { data, error } = await query;
       if (data) {
         setPosts(data.map((p: any) => ({
@@ -89,7 +96,7 @@ export default function PostList({ refreshKey, userId }: { refreshKey: number; u
       setIsLoading(false);
     };
     fetchPosts();
-  }, [refreshKey, userId]);
+  }, [refreshKey, userId, singlePostId]);
 
   const sendNotification = async (receiverId: string, type: string, postId?: string) => {
     if (!currentUserId || receiverId === currentUserId) return;
@@ -97,7 +104,11 @@ export default function PostList({ refreshKey, userId }: { refreshKey: number; u
   };
 
   const toggleLike = async (postId: string, isLikedByMe: boolean, ownerId: string) => {
-    if (!currentUserId) return;
+    if (!currentUserId) {
+      alert("いいねするにはログインしてください");
+      router.push("/login");
+      return;
+    }
     setPosts(posts.map(p => {
       if (p.id === postId) {
         const newLikes = isLikedByMe ? p.likes.filter(l => l.user_id !== currentUserId) : [...p.likes, { user_id: currentUserId }];
@@ -113,7 +124,12 @@ export default function PostList({ refreshKey, userId }: { refreshKey: number; u
   };
 
   const handleAddComment = async (postId: string, ownerId: string) => {
-    if (!currentUserId || !commentText.trim()) return;
+    if (!currentUserId) {
+      alert("コメントするにはログインしてください");
+      router.push("/login");
+      return;
+    }
+    if (!commentText.trim()) return;
     setIsSubmitting(true);
     const { data, error } = await supabase
       .from("comments")
@@ -129,7 +145,11 @@ export default function PostList({ refreshKey, userId }: { refreshKey: number; u
   };
 
   const toggleFollow = async (targetUserId: string, isPrivate: boolean = false) => {
-    if (!currentUserId) return;
+    if (!currentUserId) {
+      alert("フォローするにはログインしてください");
+      router.push("/login");
+      return;
+    }
     const isFollowing = followingIds.includes(targetUserId);
     const isPending = pendingIds.includes(targetUserId);
 
@@ -152,6 +172,16 @@ export default function PostList({ refreshKey, userId }: { refreshKey: number; u
     if (!error) setPosts(posts.filter(p => p.id !== postId));
   };
 
+  const handleShare = async (postId: string) => {
+    const url = `${window.location.origin}/post/${postId}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      alert("✅ リンクをコピーしました！友達にシェアしよう！🦍");
+    } catch (err) {
+      alert("❌ コピーに失敗しました");
+    }
+  };
+
   const cardClass = theme === "light" ? "bg-white text-gray-900 border-gray-200" : "bg-black text-gray-100 border-gray-800";
   const macroClass = theme === "light" ? "bg-gray-100 text-gray-800" : "bg-gray-900 text-gray-300";
 
@@ -165,7 +195,16 @@ export default function PostList({ refreshKey, userId }: { refreshKey: number; u
         const isMyPost = currentUserId === post.user_id;
 
         return (
-          <div key={post.id} className={`p-5 rounded-xl border shadow-md ${cardClass}`}>
+          // 💡 ここが進化しました！！カード全体を「クリック可能」な筋肉にしました！
+          <div 
+            key={post.id} 
+            onClick={(e) => {
+              // いいねボタンや、プロフィールへのリンク（aタグやbutton）を押した時は遷移させない防御システム！
+              if ((e.target as HTMLElement).closest('button, a')) return;
+              router.push(`/post/${post.id}`);
+            }}
+            className={`p-5 rounded-xl border shadow-md cursor-pointer transition-colors hover:bg-gray-800/30 ${cardClass}`}
+          >
             {/* ヘッダー */}
             <div className="flex justify-between items-center mb-1 border-b border-gray-700/50 pb-2">
               <Link href={`/profile/${post.user_id}`} className="flex items-center space-x-3">
@@ -176,6 +215,7 @@ export default function PostList({ refreshKey, userId }: { refreshKey: number; u
               </Link>
               
               <div className="flex items-center gap-4 text-gray-500 relative">
+                {/* 日付はただの文字に戻しました */}
                 <span className="text-xs font-bold opacity-50">{post.date}</span>
                 
                 <button onClick={() => toggleLike(post.id, isLikedByMe, post.user_id)}>
@@ -184,6 +224,14 @@ export default function PostList({ refreshKey, userId }: { refreshKey: number; u
                 
                 <button onClick={() => setOpenCommentId(openCommentId === post.id ? null : post.id)}>
                   <MessageCircle className="w-5 h-5 hover:text-blue-500 transition-colors" />
+                </button>
+
+                {/* 💡 アイコンを矢印系（ExternalLink）に変更しました！ */}
+                <button onClick={(e) => {
+                  e.stopPropagation(); // 💡 これを足すと、シェアボタンを押した時に詳細画面に飛ばなくなります！
+                  handleShare(post.id);
+                }}>
+                  <Share2 className="w-5 h-5 hover:text-green-500 transition-colors" />
                 </button>
 
                 <button onClick={() => setOpenMenuId(openMenuId === post.id ? null : post.id)} className="p-1 hover:bg-gray-700/30 rounded-full">
@@ -240,24 +288,11 @@ export default function PostList({ refreshKey, userId }: { refreshKey: number; u
                   <h3 className="text-[12px] font-bold opacity-50 uppercase tracking-tighter">食事</h3>
                   {post.meal_calories > 0 && (
                     <div className={`flex flex-wrap justify-between items-center w-full text-[11px] sm:text-xs font-bold p-3 rounded-lg gap-y-1 ${macroClass}`}>
-  {/* カロリー */}
-  <span>🍴 {post.meal_calories}kcal</span>
-  
-  {/* タンパク質（青色） */}
-  <span className="text-blue-600 dark:text-blue-400">
-    P(タンパク質): {post.meal_protein}g
-  </span>
-  
-  {/* 脂質（オレンジ色） */}
-  <span className="text-orange-500 dark:text-orange-400">
-    F(脂質): {post.meal_fat}g
-  </span>
-  
-  {/* 炭水化物（緑色） */}
-  <span className="text-green-600 dark:text-green-400">
-    C(炭水化物): {post.meal_carbs}g
-  </span>
-</div>
+                      <span>🍴 {post.meal_calories}kcal</span>
+                      <span className="text-blue-600 dark:text-blue-400">P(タンパク質): {post.meal_protein}g</span>
+                      <span className="text-orange-500 dark:text-orange-400">F(脂質): {post.meal_fat}g</span>
+                      <span className="text-green-600 dark:text-green-400">C(炭水化物): {post.meal_carbs}g</span>
+                    </div>
                   )}
                   {post.meal_details && (
                     <div className="pt-0">
@@ -277,15 +312,13 @@ export default function PostList({ refreshKey, userId }: { refreshKey: number; u
               )}
             </div>
 
-            {/* 💬 進化したコメントセクション 💬 */}
+            {/* 💬 コメントセクション */}
             {openCommentId === post.id && (
               <div className="mt-4 pt-4 border-t border-gray-800 space-y-3">
-                {/* コメント一覧エリア */}
                 <div className="max-h-48 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
                   {post.comments.map((comment) => (
                     <div key={comment.id} className="flex flex-col gap-1 p-2 bg-gray-800/40 rounded-lg">
                       <div className="flex justify-between items-center">
-                        {/* 💡 ユーザー名とアイコンをプロフへのリンク化！！ */}
                         <Link href={`/profile/${comment.user_id}`} className="flex items-center gap-2 hover:opacity-70 transition-opacity">
                           <div className="w-5 h-5 rounded-full bg-gray-700 overflow-hidden shrink-0">
                             {comment.profiles?.avatar_url ? (
@@ -297,7 +330,6 @@ export default function PostList({ refreshKey, userId }: { refreshKey: number; u
                           <span className="font-bold text-xs text-blue-400">{comment.profiles?.username || "名無し"}</span>
                         </Link>
                         
-                        {/* 💡 返信ボタン（メンション入力）を追加！！ */}
                         <button 
                           onClick={() => setCommentText(`@${comment.profiles?.username} `)}
                           className="text-[10px] font-bold text-gray-500 hover:text-white transition-colors"
@@ -305,20 +337,19 @@ export default function PostList({ refreshKey, userId }: { refreshKey: number; u
                           返信
                         </button>
                       </div>
-                      {/* コメント本文 */}
                       <p className="text-xs opacity-90 pl-7 leading-tight whitespace-pre-wrap">{comment.content}</p>
                     </div>
                   ))}
                   {post.comments.length === 0 && <p className="text-xs text-center opacity-40 py-2 italic">コメント</p>}
                 </div>
 
-                {/* 入力エリア */}
                 <div className="flex gap-2 items-end">
                   <textarea 
                     value={commentText}
                     onChange={(e) => setCommentText(e.target.value)}
                     placeholder="コメントを入力してください"
                     className="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-blue-500 resize-none h-10"
+                    onClick={(e) => e.stopPropagation()} // 💡 テキストエリアをクリックしても詳細画面に飛ばないように防御！
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
@@ -328,7 +359,10 @@ export default function PostList({ refreshKey, userId }: { refreshKey: number; u
                   />
                   <button 
                     disabled={isSubmitting || !commentText.trim()}
-                    onClick={() => handleAddComment(post.id, post.user_id)} 
+                    onClick={(e) => {
+                      e.stopPropagation(); // 💡 送信ボタンを押しても詳細画面に飛ばないように防御！
+                      handleAddComment(post.id, post.user_id);
+                    }} 
                     className="text-white bg-blue-600 p-2 rounded-lg hover:bg-blue-500 transition-colors disabled:opacity-50 h-10"
                   >
                     {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
