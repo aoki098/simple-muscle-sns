@@ -45,7 +45,7 @@ export default function LoginPage() {
         setMessage(`❌ 登録エラー: ${error.message}`);
       } else {
         // 登録に成功したら、そのままログイン状態にしてホーム画面へ飛ばす！
-        setMessage("✅ 登録完了！ホームへ移動します🦍");
+        setMessage("✅ 登録完了！ホームへ移動します");
         router.push("/");
         router.refresh();
       }
@@ -59,7 +59,7 @@ export default function LoginPage() {
         
         {/* 💡 画面のタイトルが切り替わる */}
         <h1 className="text-3xl font-extrabold text-center mb-8">
-          {isLoginMode ? "🦍 マッスルログイン" : "🦍 新規アカウント作成"}
+          {isLoginMode ? "ログイン" : "新規アカウント作成"}
         </h1>
         
         {/* onSubmitで、上の handleSubmit が呼ばれる */}

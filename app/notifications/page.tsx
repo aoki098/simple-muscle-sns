@@ -4,12 +4,12 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useTheme } from "@/components/ThemeContext";
 import Link from "next/link";
-import { Bell, User, Loader2, Check, X, Heart, MessageCircle } from "lucide-react"; // 💡 MessageCircle追加
+import { Bell, User, Loader2, Check, X, Heart, MessageCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 type NotificationItem = {
   id: string;
-  type: "pending" | "accepted" | "like" | "comment"; // 💡 comment追加
+  type: "pending" | "accepted" | "like" | "comment";
   actor: { id: string; username: string; avatar_url: string | null };
   postContext?: string;
   postId?: string;
@@ -35,7 +35,6 @@ export default function NotificationsPage() {
       }
       setCurrentUserId(user.id);
 
-      // 💡 notificationsテーブルから直接取得（actorのプロフィールも結合！）
       const { data, error } = await supabase
         .from("notifications")
         .select(`
@@ -48,7 +47,6 @@ export default function NotificationsPage() {
 
       if (!error && data) {
         const formattedNotifs = data.map((n: any) => {
-          // 青木さんのこだわり「チラ見せテキスト」を再現！
           let context = "あなたの投稿";
           if (n.post) {
             if (n.post.exercises && n.post.exercises.length > 0) {
@@ -70,7 +68,6 @@ export default function NotificationsPage() {
         setNotifications(formattedNotifs);
       }
 
-      // 開いたら全部既読にする筋肉
       await supabase.from("notifications").update({ is_read: true }).eq("user_id", user.id);
       setIsLoading(false);
     };
@@ -78,7 +75,6 @@ export default function NotificationsPage() {
     fetchNotifications();
   }, [router]);
 
-  // 承認・拒否のロジックは青木さんのものをそのまま継承！
   const handleAccept = async (notifId: string, followerId: string) => {
     if (!currentUserId) return;
     setNotifications(prev => prev.map(n => n.id === notifId ? { ...n, type: "accepted" } : n));
@@ -110,7 +106,16 @@ export default function NotificationsPage() {
           <div className="space-y-3">
             {notifications.map((item) => (
               <div key={item.id} className={`flex items-center justify-between p-4 rounded-xl border shadow-sm ${cardClass} ${!item.is_read ? 'border-blue-500/50' : ''}`}>
-                <Link href={`/profile/${item.actor.id}`} className="flex items-center space-x-3 overflow-hidden hover:opacity-70 transition-opacity">
+                
+                {/* 💡 変更後：いいね/コメントなら投稿詳細へ、フォローなら相手のプロフへ飛ぶ！ */}
+                <Link 
+                  href={
+                    (item.type === "like" || item.type === "comment") && item.postId 
+                      ? `/post/${item.postId}` // 👈 ここで先日作った「詳細画面」に飛ぶ！
+                      : `/profile/${item.actor.id}`
+                  } 
+                  className="flex items-center space-x-3 overflow-hidden hover:opacity-70 transition-opacity"
+                >
                   <div className={`w-12 h-12 rounded-full flex items-center justify-center overflow-hidden border border-gray-500/30 shrink-0 ${theme === 'light' ? 'bg-gray-200' : 'bg-gray-800'}`}>
                     {item.actor.avatar_url ? <img src={item.actor.avatar_url} alt="icon" className="w-full h-full object-cover" /> : <User className="w-6 h-6 text-gray-400" />}
                   </div>
