@@ -96,7 +96,7 @@ export default function FollowingPage() {
 
   return (
     <main className={`min-h-screen transition-colors duration-300 ${containerClass} pb-24`}>
-      <div className="w-full px-4 pt-0">
+      <div className="w-full max-w-2xl mx-auto px-4 pt-0">
         <div className="flex items-center mb-6">
           <Link href="/profile" className="mr-4 p-2 hover:bg-gray-700/50 rounded-full transition-colors">
             <ArrowLeft className="w-6 h-6" />
@@ -112,13 +112,13 @@ export default function FollowingPage() {
         ) : users.length === 0 ? (
           <div className="text-center py-10 opacity-70 font-bold">まだ誰もフォローしていません。</div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-0.5">
             {users.map((user) => (
               // 💡 3. カード全体を <Link> に変更して、押したらその人のプロフィールに飛ぶようにした！
               <Link 
                 href={`/profile/${user.id}`} 
                 key={user.id} 
-                className={`block p-4 rounded-xl border shadow-sm transition-colors ${cardClass}`}
+                className={`block p-2 rounded-xl border shadow-sm transition-colors ${cardClass}`}
               >
                 <div className="flex items-center space-x-4">
                   <div className={`w-14 h-14 rounded-full flex items-center justify-center overflow-hidden border border-gray-500/30 shrink-0 ${theme === 'light' ? 'bg-gray-200' : 'bg-gray-800'}`}>

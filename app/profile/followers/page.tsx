@@ -7,7 +7,6 @@ import Link from "next/link";
 import { ArrowLeft, User, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-// 💡 1. こちらも同じように型を追加！
 type Profile = {
   id: string;
   username: string;
@@ -33,7 +32,6 @@ export default function FollowersPage() {
         return;
       }
 
-      // 自分をフォローしてくれている人（follower_id）のリストを取得
       const { data: follows } = await supabase
         .from("follows")
         .select("follower_id")
@@ -42,14 +40,12 @@ export default function FollowersPage() {
       if (follows && follows.length > 0) {
         const followerIds = follows.map(f => f.follower_id);
         
-        // そのIDを持つユーザーのプロフィールをごっそり取得
         const { data: profiles } = await supabase
           .from("profiles")
           .select("id, username, avatar_url, bio")
           .in("id", followerIds);
           
         if (profiles) {
-          // 💡 2. こちらも全員分のカウントを並行して取得！
           const profilesWithCounts = await Promise.all(
             profiles.map(async (p) => {
               const { count: postsCount } = await supabase
@@ -79,7 +75,7 @@ export default function FollowersPage() {
           setUsers(profilesWithCounts);
         }
       } else {
-        setUsers([]); // フォロワーがいなければ空っぽにする
+        setUsers([]); 
       }
       
       setIsLoading(false);
@@ -93,7 +89,7 @@ export default function FollowersPage() {
 
   return (
     <main className={`min-h-screen transition-colors duration-300 ${containerClass} pb-24`}>
-      <div className="w-full px-4 pt-0">
+      <div className="w-full max-w-2xl mx-auto px-4 pt-0">
         <div className="flex items-center mb-6">
           <Link href="/profile" className="mr-4 p-2 hover:bg-gray-700/50 rounded-full transition-colors">
             <ArrowLeft className="w-6 h-6" />
@@ -109,13 +105,12 @@ export default function FollowersPage() {
         ) : users.length === 0 ? (
           <div className="text-center py-10 opacity-70 font-bold">まだフォロワーがいません。</div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-0.5">
             {users.map((user) => (
-              // 💡 3. こちらもカード全体を <Link> に変更！
               <Link 
                 href={`/profile/${user.id}`} 
                 key={user.id} 
-                className={`block p-4 rounded-xl border shadow-sm transition-colors ${cardClass}`}
+                className={`block p-2 rounded-xl border shadow-sm transition-colors ${cardClass}`}
               >
                 <div className="flex items-center space-x-4">
                   <div className={`w-14 h-14 rounded-full flex items-center justify-center overflow-hidden border border-gray-500/30 shrink-0 ${theme === 'light' ? 'bg-gray-200' : 'bg-gray-800'}`}>

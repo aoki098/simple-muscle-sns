@@ -176,7 +176,7 @@ export default function PostList({ refreshKey, userId, singlePostId }: { refresh
     const url = `${window.location.origin}/post/${postId}`;
     try {
       await navigator.clipboard.writeText(url);
-      alert("✅ リンクをコピーしました！友達にシェアしよう！🦍");
+      alert("✅ リンクをコピーしました！友達にシェアしよう！");
     } catch (err) {
       alert("❌ コピーに失敗しました");
     }
