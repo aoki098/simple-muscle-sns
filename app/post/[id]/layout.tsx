@@ -1,11 +1,9 @@
 import { Metadata } from "next";
 import { supabase } from "@/lib/supabase";
 
-// 💡 サーバー側でOGP（シェアカード）の情報を自動生成する強力な筋肉！
 export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
   const postId = params.id;
 
-  // Supabaseから、この投稿の「画像」「ユーザー名」「メモ」だけを引っ張ってくる！
   const { data: post } = await supabase
     .from("posts")
     .select(`
@@ -20,14 +18,18 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
     return { title: "投稿が見つかりません" };
   }
 
-  // 🃏 カードに表示するタイトルと説明文を作る！
-  const username = post.profiles?.username || "名無し";
+  // 💡 ここが修正の要（筋肉）！
+  // TypeScriptに「配列だった場合は1番目の人を、そうじゃない場合はそのままユーザー名を取る」と教え込む！
+  const profilesData: any = post.profiles;
+  const username = Array.isArray(profilesData) 
+    ? profilesData[0]?.username 
+    : profilesData?.username || "名無し";
+
   const title = `${username}さんの筋トレ＆食事記録💪`;
   const description = post.meal_details 
-    ? post.meal_details.substring(0, 50) + "..." // メモがあれば最初の50文字を表示
+    ? post.meal_details.substring(0, 50) + "..." 
     : "今日のトレーニングと食事の記録をチェック！";
   
-  // 📸 投稿に写真があれば、それをカードのデカい画像としてセットする！
   const images = post.image_url ? [post.image_url] : [];
 
   return {
@@ -40,7 +42,7 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
       type: "article",
     },
     twitter: {
-      card: "summary_large_image", // 💡 これがX(Twitter)で「デカい画像カード」を出すための魔法の呪文！！
+      card: "summary_large_image",
       title: title,
       description: description,
       images: images,
@@ -48,7 +50,6 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
   };
 }
 
-// 💡 画面自体の表示は今まで通り page.tsx に任せるので、そのまま通すだけ！
 export default function PostLayout({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
