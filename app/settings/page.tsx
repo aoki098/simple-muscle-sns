@@ -79,7 +79,7 @@ export default function SettingsPage() {
 
   return (
     <main className="min-h-screen py-0 px-4 transition-colors duration-300 pb-24">
-      <h1 className="text-xl font-bold text-center mb-6 flex items-center justify-center gap-2 pt-20">
+      <h1 className="text-xl font-bold text-center mb-6 flex items-center justify-center gap-2 pt-00">
         <Settings className="w-6 h-6 text-gray-500" />
         設定
       </h1>

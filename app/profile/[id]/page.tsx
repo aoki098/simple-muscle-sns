@@ -3,11 +3,10 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useTheme } from "@/components/ThemeContext";
-import { ArrowLeft, User, Loader2, Lock } from "lucide-react"; // 💡 Lock（南京錠）追加！
+import { ArrowLeft, User, Loader2, Lock } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import PostList from "@/components/PostList";
 
-// 💡 Profile型に is_private を追加！
 type Profile = {
   id: string;
   username: string;
@@ -26,7 +25,7 @@ export default function UserProfilePage() {
   const [isLoading, setIsLoading] = useState(true);
   
   const [isFollowing, setIsFollowing] = useState(false);
-  const [isPending, setIsPending] = useState(false); // 💡 リクエスト中（保留）の状態を追加！
+  const [isPending, setIsPending] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isMe, setIsMe] = useState(false);
 
@@ -34,13 +33,11 @@ export default function UserProfilePage() {
     const fetchUserData = async () => {
       setIsLoading(true);
 
-      // 1. ログイン中の自分の情報を取得
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setCurrentUserId(user.id);
         if (user.id === id) setIsMe(true);
 
-        // 相手へのフォロー状態（承認済みか、リクエスト中か）をチェック！
         if (user.id !== id) {
           const { data: followData } = await supabase
             .from("follows")
@@ -55,7 +52,6 @@ export default function UserProfilePage() {
         }
       }
 
-      // 2. 相手のプロフィール情報（is_private含む）を取得
       const { data: profileData } = await supabase
         .from("profiles")
         .select("id, username, avatar_url, bio, is_private")
@@ -63,7 +59,6 @@ export default function UserProfilePage() {
         .single();
       if (profileData) setProfile(profileData as Profile);
 
-      // 3. 相手の各種カウントを取得（※承認済みのフォロワーだけ数える）
       const { count: postsCount } = await supabase.from("posts").select("*", { count: "exact", head: true }).eq("user_id", id);
       const { count: followersCount } = await supabase.from("follows").select("*", { count: "exact", head: true }).eq("following_id", id).eq("status", "accepted");
       const { count: followingCount } = await supabase.from("follows").select("*", { count: "exact", head: true }).eq("follower_id", id).eq("status", "accepted");
@@ -80,7 +75,6 @@ export default function UserProfilePage() {
     if (id) fetchUserData();
   }, [id]);
 
-  // 💡 リクエスト制に対応した究極のフォロー機能！
   const handleToggleFollow = async () => {
     if (!currentUserId || !profile) {
       router.push("/login");
@@ -88,7 +82,6 @@ export default function UserProfilePage() {
     }
 
     if (isFollowing || isPending) {
-      // フォロー解除 or リクエスト取り消し
       setIsFollowing(false);
       setIsPending(false);
       if (isFollowing) {
@@ -96,14 +89,13 @@ export default function UserProfilePage() {
       }
       await supabase.from("follows").delete().match({ follower_id: currentUserId, following_id: id });
     } else {
-      // 新規フォロー（相手が鍵垢ならpending、公開ならaccepted）
       const newStatus = profile.is_private ? "pending" : "accepted";
       
       if (profile.is_private) {
-        setIsPending(true); // リクエスト済みにする（フォロワー数は増やさない）
+        setIsPending(true);
       } else {
         setIsFollowing(true);
-        setStats(prev => ({ ...prev, followers: prev.followers + 1 })); // 即フォローなので数字を増やす
+        setStats(prev => ({ ...prev, followers: prev.followers + 1 }));
       }
       
       await supabase.from("follows").insert({ 
@@ -131,26 +123,22 @@ export default function UserProfilePage() {
     </div>
   );
 
-  // 💡 投稿を見れるかどうかの判定（自分が本人の場合、相手が公開垢の場合、自分がフォロー済みの場合）
   const canViewPosts = isMe || !profile.is_private || isFollowing;
 
   return (
     <main className={`min-h-screen transition-colors duration-300 ${containerClass} pb-24`}>
-      <div className="w-full px-4 pt-20 max-w-2xl mx-auto">
+      <div className="w-full px-4 pt-0 max-w-2xl mx-auto">
         
-        {/* ヘッダー */}
         <div className="flex items-center mb-6">
           <button onClick={() => router.back()} className="mr-4 p-2 hover:bg-gray-700/50 rounded-full transition-colors">
             <ArrowLeft className="w-6 h-6" />
           </button>
-          {/* 💡 ヘッダーの名前の横にも南京錠！ */}
           <h1 className="text-xl font-bold truncate flex items-center">
             {profile.username}
             {profile.is_private && <Lock className="w-4 h-4 ml-1.5 text-gray-500" strokeWidth={2.5} />}
           </h1>
         </div>
 
-        {/* プロフィールカード */}
         <div className={`p-6 rounded-xl border shadow-md mb-8 ${cardClass}`}>
           <div className="flex items-center space-x-4 mb-4">
             <div className={`w-20 h-20 rounded-full flex items-center justify-center overflow-hidden border border-gray-500/30 shrink-0 ${theme === 'light' ? 'bg-gray-200' : 'bg-gray-800'}`}>
@@ -161,7 +149,6 @@ export default function UserProfilePage() {
               )}
             </div>
             <div className="flex-1">
-              {/* 💡 ここにも南京錠！ */}
               <h2 className="text-2xl font-bold flex items-center">
                 {profile.username || "名無し"}
                 {profile.is_private && <Lock className="w-5 h-5 ml-2 text-gray-500" strokeWidth={2.5} />}
@@ -170,14 +157,12 @@ export default function UserProfilePage() {
             </div>
           </div>
 
-          {/* 統計データ */}
           <div className="flex space-x-6 mb-6">
             <div className="text-center"><span className="block font-bold text-xl">{stats.posts}</span><span className="text-xs opacity-70">投稿</span></div>
             <div className="text-center"><span className="block font-bold text-xl">{stats.followers}</span><span className="text-xs opacity-70">フォロワー</span></div>
             <div className="text-center"><span className="block font-bold text-xl">{stats.following}</span><span className="text-xs opacity-70">フォロー中</span></div>
           </div>
 
-          {/* 💡 ボタンの表示が4パターンに進化！ */}
           {!isMe && (
             <button 
               onClick={handleToggleFollow}
@@ -194,7 +179,6 @@ export default function UserProfilePage() {
           )}
         </div>
 
-        {/* 💡 過去の記録（見れる権限があるかチェック！） */}
         <div className="mb-4">
           {canViewPosts ? (
             <>

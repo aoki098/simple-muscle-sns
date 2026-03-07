@@ -25,7 +25,7 @@ export default function RecordsPage() {
   return (
     <main className={`min-h-screen transition-colors duration-300 ${containerClass}`}>
       {/* 💡 pt-20 を設定して、固定ヘッダーの下からリストが始まるように調整しました */}
-      <div className="w-full px-4 pt-20">
+      <div className="w-full px-4 pt-3">
 
         {/* 💡 ここにあった大きな <h1>自分の記録</h1> は削除しました！ */}
 
