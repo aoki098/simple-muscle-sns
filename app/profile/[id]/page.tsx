@@ -103,6 +103,16 @@ export default function UserProfilePage() {
         following_id: id,
         status: newStatus
       });
+
+      // 💡 ここが追加した通知エンジン（最強の筋肉）です！！
+      // プロフィール画面のボタンを押した時にも、相手に「フォロー」または「リクエスト」の通知を飛ばします！
+      if (currentUserId !== id) {
+        await supabase.from("notifications").insert({
+          user_id: id,
+          actor_id: currentUserId,
+          type: newStatus === "pending" ? "pending" : "accepted"
+        });
+      }
     }
   };
 
