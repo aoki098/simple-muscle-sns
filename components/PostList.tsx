@@ -105,7 +105,8 @@ export default function PostList({ refreshKey, userId, singlePostId }: { refresh
   }, [refreshKey, userId, singlePostId]);
 
   const sendNotification = async (receiverId: string, type: string, postId?: string) => {
-    if (!currentUserId) return;
+    // 💡 ここが鉄壁のガード！！「ログインしていない」または「相手と自分が同じID」なら通知を送らない！
+    if (!currentUserId || receiverId === currentUserId) return;
     await supabase.from("notifications").insert({ user_id: receiverId, actor_id: currentUserId, type, post_id: postId });
   };
 
