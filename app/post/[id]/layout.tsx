@@ -1,8 +1,11 @@
 import { Metadata } from "next";
 import { supabase } from "@/lib/supabase";
 
-export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
-  const postId = params.id;
+// 💡 修正1：params の型を Promise に変更！
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  // 💡 修正2：await を使って、しっかり一呼吸おいてから id を取り出す！
+  const resolvedParams = await params;
+  const postId = resolvedParams.id;
 
   const { data: post } = await supabase
     .from("posts")
@@ -18,8 +21,6 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
     return { title: "投稿が見つかりません" };
   }
 
-  // 💡 ここが修正の要（筋肉）！
-  // TypeScriptに「配列だった場合は1番目の人を、そうじゃない場合はそのままユーザー名を取る」と教え込む！
   const profilesData: any = post.profiles;
   const username = Array.isArray(profilesData) 
     ? profilesData[0]?.username 
