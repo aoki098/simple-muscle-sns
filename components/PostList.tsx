@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useTheme } from "@/components/ThemeContext";
 import { 
-  User, Loader2, Heart, MessageCircle, Send, Lock, MoreHorizontal, Trash2, Share2 // 💡 Share2 に変更！
+  User, Loader2, Heart, MessageCircle, Send, Lock, MoreHorizontal, Trash2, Share2
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -48,7 +48,6 @@ export default function PostList({ refreshKey, userId, singlePostId }: { refresh
   const [commentText, setCommentText] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // フォロー状態の管理
   const [followingIds, setFollowingIds] = useState<string[]>([]);
   const [pendingIds, setPendingIds] = useState<string[]>([]);
 
@@ -56,11 +55,15 @@ export default function PostList({ refreshKey, userId, singlePostId }: { refresh
     const fetchPosts = async () => {
       setIsLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
+      
+      let acceptedFollowingIds: string[] = []; // 💡 フォロー中の人のIDをまとめる箱
+
       if (user) {
         setCurrentUserId(user.id);
         const { data: followData } = await supabase.from("follows").select("following_id, status").eq("follower_id", user.id);
         if (followData) {
-          setFollowingIds(followData.filter(f => f.status === 'accepted').map(f => f.following_id));
+          acceptedFollowingIds = followData.filter(f => f.status === 'accepted').map(f => f.following_id);
+          setFollowingIds(acceptedFollowingIds);
           setPendingIds(followData.filter(f => f.status === 'pending').map(f => f.following_id));
         }
       }
@@ -82,6 +85,9 @@ export default function PostList({ refreshKey, userId, singlePostId }: { refresh
         query = query.eq("id", singlePostId);
       } else if (userId) {
         query = query.eq("user_id", userId);
+      } else if (user) {
+        // 💡 修正①：ホーム画面の場合は、「自分のID」と「フォローしてる人のID」の投稿だけに絞り込む！！
+        query = query.in("user_id", [user.id, ...acceptedFollowingIds]);
       }
 
       const { data, error } = await query;
@@ -195,11 +201,9 @@ export default function PostList({ refreshKey, userId, singlePostId }: { refresh
         const isMyPost = currentUserId === post.user_id;
 
         return (
-          // 💡 ここが進化しました！！カード全体を「クリック可能」な筋肉にしました！
           <div 
             key={post.id} 
             onClick={(e) => {
-              // いいねボタンや、プロフィールへのリンク（aタグやbutton）を押した時は遷移させない防御システム！
               if ((e.target as HTMLElement).closest('button, a')) return;
               router.push(`/post/${post.id}`);
             }}
@@ -215,20 +219,22 @@ export default function PostList({ refreshKey, userId, singlePostId }: { refresh
               </Link>
               
               <div className="flex items-center gap-4 text-gray-500 relative">
-                {/* 日付はただの文字に戻しました */}
                 <span className="text-xs font-bold opacity-50">{post.date}</span>
                 
-                <button onClick={() => toggleLike(post.id, isLikedByMe, post.user_id)}>
+                {/* 💡 修正②：アイコンの横に数字（span）を追加しました！！ */}
+                <button onClick={() => toggleLike(post.id, isLikedByMe, post.user_id)} className="flex items-center gap-1.5 hover:opacity-70 transition-opacity">
                   <Heart className={`w-5 h-5 ${isLikedByMe ? "fill-red-500 text-red-500" : ""}`} />
+                  {post.likes.length > 0 && <span className={`text-xs font-bold ${isLikedByMe ? "text-red-500" : ""}`}>{post.likes.length}</span>}
                 </button>
                 
-                <button onClick={() => setOpenCommentId(openCommentId === post.id ? null : post.id)}>
-                  <MessageCircle className="w-5 h-5 hover:text-blue-500 transition-colors" />
+                {/* 💡 修正②：コメントの横にも数字を追加！ */}
+                <button onClick={() => setOpenCommentId(openCommentId === post.id ? null : post.id)} className="flex items-center gap-1.5 hover:text-blue-500 transition-colors">
+                  <MessageCircle className="w-5 h-5" />
+                  {post.comments.length > 0 && <span className="text-xs font-bold text-blue-400">{post.comments.length}</span>}
                 </button>
 
-                {/* 💡 アイコンを矢印系（ExternalLink）に変更しました！ */}
                 <button onClick={(e) => {
-                  e.stopPropagation(); // 💡 これを足すと、シェアボタンを押した時に詳細画面に飛ばなくなります！
+                  e.stopPropagation();
                   handleShare(post.id);
                 }}>
                   <Share2 className="w-5 h-5 hover:text-green-500 transition-colors" />
@@ -263,7 +269,6 @@ export default function PostList({ refreshKey, userId, singlePostId }: { refresh
 
             {/* コンテンツエリア */}
             <div className="space-y-2">
-              {/* ① ワークアウト */}
               {post.exercises.length > 0 && (
                 <div className="space-y-0">
                   <h3 className="text-[12px] font-bold opacity-50 uppercase tracking-tighter">筋トレ</h3>
@@ -282,16 +287,16 @@ export default function PostList({ refreshKey, userId, singlePostId }: { refresh
                 </div>
               )}
 
-              {/* ② 食事 */}
+              {/* 食事 */}
               {(post.meal_calories > 0 || post.meal_details) && (
                 <div className="space-y-0">
                   <h3 className="text-[12px] font-bold opacity-50 uppercase tracking-tighter">食事</h3>
                   {post.meal_calories > 0 && (
                     <div className={`flex flex-wrap justify-between items-center w-full text-[11px] sm:text-xs font-bold p-3 rounded-lg gap-y-1 ${macroClass}`}>
                       <span>🍴 {post.meal_calories}kcal</span>
-                      <span className="text-blue-600 dark:text-blue-400">P(タンパク質): {post.meal_protein}g</span>
-                      <span className="text-orange-500 dark:text-orange-400">F(脂質): {post.meal_fat}g</span>
-                      <span className="text-green-600 dark:text-green-400">C(炭水化物): {post.meal_carbs}g</span>
+                      <span className="text-blue-600 dark:text-blue-400">P: {post.meal_protein}g</span>
+                      <span className="text-orange-500 dark:text-orange-400">F: {post.meal_fat}g</span>
+                      <span className="text-green-600 dark:text-green-400">C: {post.meal_carbs}g</span>
                     </div>
                   )}
                   {post.meal_details && (
@@ -304,7 +309,6 @@ export default function PostList({ refreshKey, userId, singlePostId }: { refresh
                 </div>
               )}
 
-              {/* ③ 写真 */}
               {post.image_url && (
                 <div className="mt-2 rounded-xl overflow-hidden border border-gray-800 bg-black/20">
                   <img src={post.image_url} className="w-full h-auto object-contain max-h-[500px] mx-auto" alt="Post" />
@@ -312,7 +316,7 @@ export default function PostList({ refreshKey, userId, singlePostId }: { refresh
               )}
             </div>
 
-            {/* 💬 コメントセクション */}
+            {/* コメントセクション */}
             {openCommentId === post.id && (
               <div className="mt-4 pt-4 border-t border-gray-800 space-y-3">
                 <div className="max-h-48 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
@@ -349,7 +353,7 @@ export default function PostList({ refreshKey, userId, singlePostId }: { refresh
                     onChange={(e) => setCommentText(e.target.value)}
                     placeholder="コメントを入力してください"
                     className="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-blue-500 resize-none h-10"
-                    onClick={(e) => e.stopPropagation()} // 💡 テキストエリアをクリックしても詳細画面に飛ばないように防御！
+                    onClick={(e) => e.stopPropagation()}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
@@ -360,7 +364,7 @@ export default function PostList({ refreshKey, userId, singlePostId }: { refresh
                   <button 
                     disabled={isSubmitting || !commentText.trim()}
                     onClick={(e) => {
-                      e.stopPropagation(); // 💡 送信ボタンを押しても詳細画面に飛ばないように防御！
+                      e.stopPropagation();
                       handleAddComment(post.id, post.user_id);
                     }} 
                     className="text-white bg-blue-600 p-2 rounded-lg hover:bg-blue-500 transition-colors disabled:opacity-50 h-10"
