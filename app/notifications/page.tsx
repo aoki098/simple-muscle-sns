@@ -10,7 +10,7 @@ import { useRouter } from "next/navigation";
 type NotificationItem = {
   id: string;
   type: "pending" | "accepted" | "like" | "comment";
-  actor: { id: string; username: string; avatar_url: string | null };
+  actor: { id: string; username: string; avatar_url: string | null } | null;
   postContext?: string;
   postId?: string;
   is_read: boolean;
@@ -40,8 +40,8 @@ export default function NotificationsPage() {
         .select(`
           id, type, is_read, post_id,
           actor:profiles!actor_id(id, username, avatar_url),
-          post:posts(exercises, meal_details)
-        `)
+          post:posts!notifications_post_id_fkey(exercises, meal_details)
+        `) // 👆 「notifications_post_id_fkey という筋を絶対に使え！」と強制！
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
@@ -56,10 +56,13 @@ export default function NotificationsPage() {
             }
           }
 
+          // 💡 ここが超重要！actorが配列で返ってきたりnullだったりしても絶対にクラッシュさせない防御壁！
+          const actorData = Array.isArray(n.actor) ? n.actor[0] : n.actor;
+
           return {
             id: n.id,
             type: n.type,
-            actor: n.actor,
+            actor: actorData || { id: "", username: "退会したユーザー", avatar_url: null },
             postContext: context,
             postId: n.post_id,
             is_read: n.is_read
@@ -76,13 +79,13 @@ export default function NotificationsPage() {
   }, [router]);
 
   const handleAccept = async (notifId: string, followerId: string) => {
-    if (!currentUserId) return;
+    if (!currentUserId || !followerId) return;
     setNotifications(prev => prev.map(n => n.id === notifId ? { ...n, type: "accepted" } : n));
     await supabase.from("follows").update({ status: "accepted" }).match({ follower_id: followerId, following_id: currentUserId });
   };
 
   const handleDecline = async (notifId: string, followerId: string) => {
-    if (!currentUserId) return;
+    if (!currentUserId || !followerId) return;
     setNotifications(prev => prev.filter(n => n.id !== notifId));
     await supabase.from("follows").delete().match({ follower_id: followerId, following_id: currentUserId });
     await supabase.from("notifications").delete().eq("id", notifId);
@@ -93,7 +96,7 @@ export default function NotificationsPage() {
 
   return (
     <main className={`min-h-screen transition-colors duration-300 ${containerClass} pb-24`}>
-      <div className="w-full px-4 pt-20 max-w-2xl mx-auto">
+      <div className="w-full px-4 pt-0 max-w-2xl mx-auto">
         <h1 className="text-2xl font-bold mb-8 flex items-center gap-2">
           <Bell className="w-6 h-6" /> 通知
         </h1>
@@ -103,24 +106,24 @@ export default function NotificationsPage() {
         ) : notifications.length === 0 ? (
           <div className="text-center py-12 opacity-60 font-bold bg-gray-500/5 rounded-xl border border-gray-500/10">まだ通知はありません。</div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-1">
             {notifications.map((item) => (
               <div key={item.id} className={`flex items-center justify-between p-4 rounded-xl border shadow-sm ${cardClass} ${!item.is_read ? 'border-blue-500/50' : ''}`}>
                 
-                {/* 💡 変更後：いいね/コメントなら投稿詳細へ、フォローなら相手のプロフへ飛ぶ！ */}
                 <Link 
                   href={
                     (item.type === "like" || item.type === "comment") && item.postId 
-                      ? `/post/${item.postId}` // 👈 ここで先日作った「詳細画面」に飛ぶ！
-                      : `/profile/${item.actor.id}`
+                      ? `/post/${item.postId}` 
+                      : `/profile/${item.actor?.id}`
                   } 
                   className="flex items-center space-x-3 overflow-hidden hover:opacity-70 transition-opacity"
                 >
                   <div className={`w-12 h-12 rounded-full flex items-center justify-center overflow-hidden border border-gray-500/30 shrink-0 ${theme === 'light' ? 'bg-gray-200' : 'bg-gray-800'}`}>
-                    {item.actor.avatar_url ? <img src={item.actor.avatar_url} alt="icon" className="w-full h-full object-cover" /> : <User className="w-6 h-6 text-gray-400" />}
+                    {/* 💡 ?. を使ってエラーを完全回避！ */}
+                    {item.actor?.avatar_url ? <img src={item.actor.avatar_url} alt="icon" className="w-full h-full object-cover" /> : <User className="w-6 h-6 text-gray-400" />}
                   </div>
                   <div className="min-w-0 pr-2">
-                    <p className="font-bold truncate">{item.actor.username || "名無し"}</p>
+                    <p className="font-bold truncate">{item.actor?.username || "名無し"}</p>
                     <div className="flex items-center gap-1.5 mt-0.5">
                       {item.type === "pending" && <p className="text-xs opacity-60 truncate">フォローをリクエストしています</p>}
                       {item.type === "accepted" && <p className="text-xs opacity-60 truncate">あなたをフォローしました！</p>}
@@ -140,10 +143,10 @@ export default function NotificationsPage() {
                   </div>
                 </Link>
 
-                {item.type === "pending" && (
+                {item.type === "pending" && item.actor?.id && (
                   <div className="flex items-center gap-2 shrink-0">
-                    <button onClick={() => handleAccept(item.id, item.actor.id)} className="w-10 h-10 rounded-full bg-blue-600 text-white hover:bg-blue-700 flex items-center justify-center shadow-md transition-transform active:scale-90"><Check className="w-6 h-6" /></button>
-                    <button onClick={() => handleDecline(item.id, item.actor.id)} className="w-10 h-10 rounded-full bg-gray-200 text-gray-600 hover:bg-gray-300 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 flex items-center justify-center transition-transform active:scale-90"><X className="w-5 h-5" /></button>
+                    <button onClick={() => handleAccept(item.id, item.actor!.id)} className="w-10 h-10 rounded-full bg-blue-600 text-white hover:bg-blue-700 flex items-center justify-center shadow-md transition-transform active:scale-90"><Check className="w-6 h-6" /></button>
+                    <button onClick={() => handleDecline(item.id, item.actor!.id)} className="w-10 h-10 rounded-full bg-gray-200 text-gray-600 hover:bg-gray-300 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 flex items-center justify-center transition-transform active:scale-90"><X className="w-5 h-5" /></button>
                   </div>
                 )}
               </div>
