@@ -9,16 +9,22 @@ import { useTheme } from "@/components/ThemeContext";
 
 export default function Header() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  // 💡 未読通知の数を保存する筋肉（ステート）を追加！
   const [unreadCount, setUnreadCount] = useState(0);
+  
+  // 💡 ログイン状態を記憶する門番の筋肉！
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  
   const pathname = usePathname();
   const { theme } = useTheme();
 
-  // 💡 pathname（画面）が変わるたびに、アイコンと未読数を最新化する！
   useEffect(() => {
     const fetchHeaderData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
+      
       if (user) {
+        // 💡 ユーザーがいれば、門番のガードを解く！
+        setIsLoggedIn(true);
+
         // 1. プロフィール画像の取得
         const { data: profileData } = await supabase
           .from("profiles")
@@ -30,7 +36,7 @@ export default function Header() {
           setAvatarUrl(profileData.avatar_url);
         }
 
-        // 2. 未読通知（is_read = false）の数を取得する最強エンジン！
+        // 2. 未読通知の取得
         const { count, error } = await supabase
           .from("notifications")
           .select("*", { count: "exact", head: true })
@@ -40,6 +46,9 @@ export default function Header() {
         if (!error && count !== null) {
           setUnreadCount(count);
         }
+      } else {
+        // 💡 ユーザーがいなければ、ガードを固める！
+        setIsLoggedIn(false);
       }
     };
     
@@ -62,8 +71,9 @@ export default function Header() {
       
       {/* 💡 左側：自分のプロフィールアイコン */}
       <div className="absolute top-4 left-4 pointer-events-auto z-10">
+        {/* 💡 行き先ガード：未ログインなら /login へ飛ばす！ */}
         <Link 
-          href="/profile" 
+          href={isLoggedIn ? "/profile" : "/login"} 
           className="w-10 h-10 rounded-full overflow-hidden border border-gray-600 shadow-sm bg-gray-800 flex items-center justify-center transition-transform active:scale-90 hover:opacity-80 inline-block"
         >
           {avatarUrl ? (
@@ -88,13 +98,13 @@ export default function Header() {
       {isTimeline && (
         <div className="absolute top-4 right-4 pointer-events-auto z-10 flex items-center gap-1">
           {/* 🔔 通知（ベル）ボタン */}
+          {/* 💡 行き先ガード搭載！ */}
           <Link 
-            href="/notifications" 
+            href={isLoggedIn ? "/notifications" : "/login"} 
             className={`w-10 h-10 rounded-full flex items-center justify-center transition-transform active:scale-90 relative ${iconHoverClass}`}
           >
             <Bell className={`w-6 h-6 ${textColorClass}`} />
             
-            {/* 💡 未読が1件以上ある時だけ赤いバッジを出す！ */}
             {unreadCount > 0 && (
               <span className="absolute top-1.5 right-1.5 bg-red-500 text-white text-[9px] font-bold px-1 min-w-[16px] h-[16px] flex items-center justify-center rounded-full border-2 border-white dark:border-black transform translate-x-1/4 -translate-y-1/4">
                 {unreadCount > 99 ? '99+' : unreadCount}
@@ -103,8 +113,9 @@ export default function Header() {
           </Link>
           
           {/* 🔍 検索ボタン */}
+          {/* 💡 行き先ガード搭載！ */}
           <Link 
-            href="/search" 
+            href={isLoggedIn ? "/search" : "/login"} 
             className={`w-10 h-10 rounded-full flex items-center justify-center transition-transform active:scale-90 ${iconHoverClass}`}
           >
             <Search className={`w-6 h-6 ${textColorClass}`} />

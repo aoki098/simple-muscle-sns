@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useTheme } from "@/components/ThemeContext";
 import { 
-  User, Loader2, Heart, MessageCircle, Send, Lock, MoreHorizontal, Trash2, Share2
+  User, Loader2, Heart, MessageCircle, Send, MoreHorizontal, Trash2, Share2
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -48,8 +48,7 @@ export default function PostList({ refreshKey, userId, singlePostId }: { refresh
   const [commentText, setCommentText] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [followingIds, setFollowingIds] = useState<string[]>([]);
-  const [pendingIds, setPendingIds] = useState<string[]>([]);
+  // 💡 いらなくなったフォロー管理の筋肉（state）をごっそり削除しました！
 
   useEffect(() => {
     const fetchPosts = async () => {
@@ -62,9 +61,8 @@ export default function PostList({ refreshKey, userId, singlePostId }: { refresh
         setCurrentUserId(user.id);
         const { data: followData } = await supabase.from("follows").select("following_id, status").eq("follower_id", user.id);
         if (followData) {
+          // 💡 タイムラインに表示するため、「フォロー承認済み」のIDだけを取得！
           acceptedFollowingIds = followData.filter(f => f.status === 'accepted').map(f => f.following_id);
-          setFollowingIds(acceptedFollowingIds);
-          setPendingIds(followData.filter(f => f.status === 'pending').map(f => f.following_id));
         }
       }
       
@@ -149,27 +147,7 @@ export default function PostList({ refreshKey, userId, singlePostId }: { refresh
     setIsSubmitting(false);
   };
 
-  const toggleFollow = async (targetUserId: string, isPrivate: boolean = false) => {
-    if (!currentUserId) {
-      alert("フォローするにはログインしてください");
-      router.push("/login");
-      return;
-    }
-    const isFollowing = followingIds.includes(targetUserId);
-    const isPending = pendingIds.includes(targetUserId);
-
-    if (isFollowing || isPending) {
-      setFollowingIds(prev => prev.filter(id => id !== targetUserId));
-      setPendingIds(prev => prev.filter(id => id !== targetUserId));
-      await supabase.from("follows").delete().match({ follower_id: currentUserId, following_id: targetUserId });
-    } else {
-      const status = isPrivate ? 'pending' : 'accepted';
-      if (isPrivate) setPendingIds(prev => [...prev, targetUserId]);
-      else setFollowingIds(prev => [...prev, targetUserId]);
-      await supabase.from("follows").insert({ follower_id: currentUserId, following_id: targetUserId, status });
-      await sendNotification(targetUserId, status === 'pending' ? 'pending' : 'accepted');
-    }
-  };
+  // 💡 toggleFollow 関数も丸ごと削除して超スッキリ！！
 
   const handleDelete = async (postId: string) => {
     if (!window.confirm("本当にこの記録を削除しますか？")) return;
@@ -199,12 +177,10 @@ export default function PostList({ refreshKey, userId, singlePostId }: { refresh
         const isLikedByMe = post.likes.some(l => l.user_id === currentUserId);
         const isMyPost = currentUserId === post.user_id;
         
-        // 💡 1. まず配列化する
         const rawImageUrls = Array.isArray(post.image_url) 
           ? post.image_url 
           : (typeof post.image_url === 'string' ? [post.image_url] : []);
         
-        // 💡 2. [null] や [""] などの「空っぽデータ」を完全に弾き飛ばす最強のフィルター！！
         const imageUrls = rawImageUrls.filter(url => url && typeof url === 'string' && url.trim() !== "");
 
         return (
@@ -245,28 +221,22 @@ export default function PostList({ refreshKey, userId, singlePostId }: { refresh
                   <Share2 className="w-5 h-5 hover:text-green-500 transition-colors" />
                 </button>
 
-                <button onClick={() => setOpenMenuId(openMenuId === post.id ? null : post.id)} className="p-1 hover:bg-gray-700/30 rounded-full">
-                  <MoreHorizontal className="w-5 h-5 text-gray-400" />
-                </button>
+                {/* 💡 自分の投稿の時だけ「･･･」を表示するように制限！ */}
+                {isMyPost && (
+                  <button onClick={() => setOpenMenuId(openMenuId === post.id ? null : post.id)} className="p-1 hover:bg-gray-700/30 rounded-full">
+                    <MoreHorizontal className="w-5 h-5 text-gray-400" />
+                  </button>
+                )}
 
-                {openMenuId === post.id && (
-                  <div className="absolute top-8 right-0 w-48 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50 overflow-hidden">
-                    {!isMyPost && (
-                      <button 
-                        onClick={() => { toggleFollow(post.user_id, post.profiles?.is_private); setOpenMenuId(null); }} 
-                        className="w-full text-left px-4 py-3 text-sm font-bold text-white hover:bg-gray-700"
-                      >
-                        {followingIds.includes(post.user_id) ? "➖ フォロー解除" : pendingIds.includes(post.user_id) ? "⏳ 申請中" : "➕ フォローする"}
-                      </button>
-                    )}
-                    {isMyPost && (
-                      <button 
-                        onClick={() => { handleDelete(post.id); setOpenMenuId(null); }} 
-                        className="w-full text-left px-4 py-3 text-sm font-bold text-red-500 hover:bg-gray-700 flex items-center gap-2"
-                      >
-                        <Trash2 className="w-4 h-4" /> 削除する
-                      </button>
-                    )}
+                {/* 💡 メニューの中身も「削除」だけになり、超スッキリ！ */}
+                {isMyPost && openMenuId === post.id && (
+                  <div className="absolute top-8 right-0 w-36 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50 overflow-hidden">
+                    <button 
+                      onClick={() => { handleDelete(post.id); setOpenMenuId(null); }} 
+                      className="w-full text-left px-4 py-3 text-sm font-bold text-red-500 hover:bg-gray-700 flex items-center gap-2"
+                    >
+                      <Trash2 className="w-4 h-4" /> 削除する
+                    </button>
                   </div>
                 )}
               </div>

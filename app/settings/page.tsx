@@ -1,58 +1,62 @@
 "use client";
 
 import { useTheme } from "@/components/ThemeContext";
-import { useState, useEffect } from "react"; // 💡 useEffect を追加！
+import { useState, useEffect } from "react"; 
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
-import { Settings, Lock, Palette, LogOut } from "lucide-react";
+import { Settings, Lock, Palette, LogOut, Loader2 } from "lucide-react"; // 💡 Loader2を追加！
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
   const router = useRouter();
   
   const [isPrivate, setIsPrivate] = useState(false);
-  const [userId, setUserId] = useState<string | null>(null); // 自分のIDを保持する筋肉
-  const [isLoading, setIsLoading] = useState(true); // 読み込み中の状態管理
+  const [userId, setUserId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true); // 💡 ログイン確認＆データ読み込み状態
 
   const panelClass = theme === "light" ? "bg-white text-gray-800" : "bg-black border border-gray-800 text-gray-200";
   const dividerClass = theme === "light" ? "border-gray-200" : "border-gray-800";
 
-  // 💡 ① 画面を開いた時に、自分の鍵垢設定をDBから取ってくる筋肉！
+  // 💡 【最強の門番】画面を開いた瞬間にログイン確認＆設定取得！！
   useEffect(() => {
     const fetchPrivacySetting = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setUserId(user.id);
-        const { data } = await supabase
-          .from("profiles")
-          .select("is_private")
-          .eq("id", user.id)
-          .single();
-          
-        if (data) {
-          setIsPrivate(data.is_private || false);
-        }
+      
+      // 💡 ユーザーがいなければ問答無用でログイン画面へ強制送還！！
+      if (!user) {
+        router.push("/login");
+        return; 
       }
+
+      setUserId(user.id);
+      const { data } = await supabase
+        .from("profiles")
+        .select("is_private")
+        .eq("id", user.id)
+        .single();
+        
+      if (data) {
+        setIsPrivate(data.is_private || false);
+      }
+      
+      // 💡 確認が終わったら画面を表示する！
       setIsLoading(false);
     };
 
     fetchPrivacySetting();
-  }, []);
+  }, [router]); // 💡 routerを依存配列に追加
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.push("/login");
   };
 
-  // 💡 ② スイッチを押した時に、DBを更新する筋肉！
   const handleTogglePrivacy = async () => {
     if (!userId || isLoading) return;
 
-    // 先に画面のスイッチを切り替える（サクサク動かすため）
     const newValue = !isPrivate;
     setIsPrivate(newValue);
 
-    // 裏でSupabaseのデータを書き換える！
     const { error } = await supabase
       .from("profiles")
       .update({ is_private: newValue })
@@ -60,7 +64,7 @@ export default function SettingsPage() {
 
     if (error) {
       console.error("更新エラー:", error);
-      setIsPrivate(!newValue); // エラーが起きたら元に戻す
+      setIsPrivate(!newValue); 
       alert("設定の更新に失敗しました。");
     }
   };
@@ -76,6 +80,15 @@ export default function SettingsPage() {
       <div className="bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-300"></div>
     </button>
   );
+
+  // 💡 【重要】ログイン確認が終わるまでは画面を見せず、ローディングだけ回す！
+  if (isLoading) {
+    return (
+      <div className={`min-h-screen flex items-center justify-center ${theme === 'light' ? 'bg-gray-50' : 'bg-black'}`}>
+        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+      </div>
+    );
+  }
 
   return (
     <main className="min-h-screen py-0 px-4 transition-colors duration-300 pb-24">
@@ -97,7 +110,6 @@ export default function SettingsPage() {
               <p className="font-bold">非公開アカウント（鍵垢）</p>
               <p className="text-sm opacity-60 mt-1">オンにすると、フォロワー以外にはタイムラインが見えなくなります。</p>
             </div>
-            {/* 💡 先ほど作った関数を渡す！ */}
             <ToggleSwitch 
               checked={isPrivate} 
               onChange={handleTogglePrivacy} 

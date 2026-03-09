@@ -1,15 +1,20 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react"; // 💡 useEffectを追加！
 import { supabase } from "@/lib/supabase";
 import { useTheme } from "@/components/ThemeContext";
-import { Dumbbell, Flame, Utensils, CheckCircle2, AlertCircle, Save, ImagePlus, X } from "lucide-react";
+import { Dumbbell, Flame, Utensils, CheckCircle2, AlertCircle, Save, ImagePlus, X, Loader2 } from "lucide-react"; // 💡 Loader2を追加！
+import { useRouter } from "next/navigation"; // 💡 useRouterを追加！
 
 type Exercise = { name: string; weight: number | ""; details: string };
 
 export default function PostPage() {
   const { theme } = useTheme();
+  const router = useRouter(); // 💡 追加
   
+  // 💡 門番の筋肉！「ログイン確認中」のステータスを追加
+  const [isAuthChecking, setIsAuthChecking] = useState(true); 
+
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [exercises, setExercises] = useState<Exercise[]>([{ name: "", weight: "", details: "" }]);
   const [mealCalories, setMealCalories] = useState<number | "">("");
@@ -18,7 +23,6 @@ export default function PostPage() {
   const [mealCarbs, setMealCarbs] = useState<number | "">("");
   const [mealDetails, setMealDetails] = useState("");
   
-  // 💡 複数画像に対応させるため、配列（配列）に変更！！
   const [postImages, setPostImages] = useState<File[]>([]);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -26,6 +30,21 @@ export default function PostPage() {
   const [isPosting, setIsPosting] = useState(false);
   const [message, setMessage] = useState("");
   const [isError, setIsError] = useState(false);
+
+  // 💡 【最強の門番】ページを開いた瞬間にログイン状態をチェック！！
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        // ログインしていなければ、問答無用でログイン画面へ強制送還！！
+        router.push("/login");
+      } else {
+        // ログインしていれば、画面の表示を許可する！
+        setIsAuthChecking(false);
+      }
+    };
+    checkAuth();
+  }, [router]);
 
   const addExercise = () => {
     setExercises([...exercises, { name: "", weight: "", details: "" }]);
@@ -37,7 +56,6 @@ export default function PostPage() {
     setExercises(newExercises);
   };
 
-  // 💡 選択した画像を個別に削除する機能
   const removeImage = (indexToRemove: number) => {
     setPostImages(prev => prev.filter((_, idx) => idx !== indexToRemove));
     setPreviewUrls(prev => {
@@ -55,7 +73,7 @@ export default function PostPage() {
 
     const validExercises = exercises.filter(ex => ex.name.trim() !== "");
     const hasMeal = Number(mealCalories) > 0 || mealDetails.trim() !== "";
-    const hasImage = postImages.length > 0; // 💡 複数対応
+    const hasImage = postImages.length > 0;
 
     if (validExercises.length === 0 && !hasMeal && !hasImage) {
       setMessage("入力内容がありません");
@@ -66,16 +84,13 @@ export default function PostPage() {
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      setMessage("ログインしていません");
-      setIsError(true);
-      setIsPosting(false);
+      router.push("/login"); // 💡 念のためのガード
       return;
     }
 
     try {
       let finalImageUrls: string[] = [];
 
-      // 💡 複数枚の画像を同時にアップロードするエンジン（Promise.all）！！
       if (postImages.length > 0) {
         setMessage("画像をアップロード中...");
         
@@ -90,10 +105,10 @@ export default function PostPage() {
           if (uploadError) throw uploadError;
 
           const { data } = supabase.storage.from('post_images').getPublicUrl(filePath);
-          return data.publicUrl; // URLを返す
+          return data.publicUrl; 
         });
 
-        finalImageUrls = await Promise.all(uploadPromises); // 全部終わるまで待つ！
+        finalImageUrls = await Promise.all(uploadPromises); 
       }
 
       setMessage("記録を保存中...");
@@ -108,7 +123,7 @@ export default function PostPage() {
           meal_fat: mealFat || 0,
           meal_carbs: mealCarbs || 0,
           meal_details: mealDetails,
-          image_url: finalImageUrls.length > 0 ? finalImageUrls : null, // 💡 配列として保存！！
+          image_url: finalImageUrls.length > 0 ? finalImageUrls : null, 
         }
       ]);
 
@@ -139,6 +154,15 @@ export default function PostPage() {
   const inputClass = theme === "light" ? "bg-gray-50 border-gray-300 focus:border-blue-500 text-gray-900" : "bg-gray-900 border-gray-700 focus:border-blue-500 text-white";
   const buttonClass = theme === "dark-red" ? "bg-red-700 hover:bg-red-800" : "bg-blue-600 hover:bg-blue-700";
 
+  // 💡 【重要】ログイン確認が終わるまでは、画面を見せずにローディングアイコンだけを回す！！
+  if (isAuthChecking) {
+    return (
+      <div className={`min-h-screen flex items-center justify-center ${theme === 'light' ? 'bg-gray-50' : 'bg-black'}`}>
+        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+      </div>
+    );
+  }
+
   return (
     <main className="min-h-screen py-0 px-0 transition-colors duration-300 pb-24">
       <div className={`max-w-xl mx-auto px-6 pt-4 pb-6 rounded-lg shadow-md relative ${containerClass}`}>
@@ -147,12 +171,11 @@ export default function PostPage() {
           onClick={() => fileInputRef.current?.click()}
           className={`absolute top-3 right-5 p-1 transition-colors ${postImages.length >= 4 ? 'text-gray-600 cursor-not-allowed' : 'text-gray-400 hover:text-gray-200'}`}
           title="写真を追加 (最大4枚)"
-          disabled={postImages.length >= 4} // 💡 4枚でボタンを無効化
+          disabled={postImages.length >= 4}
         >
           <ImagePlus className="w-7 h-7" />
         </button>
 
-        {/* 💡 multiple属性を追加して複数選択可能に！ */}
         <input 
           type="file" 
           accept="image/*" 
@@ -162,7 +185,6 @@ export default function PostPage() {
           onChange={(e) => {
             if (e.target.files && e.target.files.length > 0) {
               const newFiles = Array.from(e.target.files);
-              // 💡 最大4枚までに制限して合体！
               const combinedFiles = [...postImages, ...newFiles].slice(0, 4);
               setPostImages(combinedFiles);
               
@@ -205,9 +227,9 @@ export default function PostPage() {
             </h2>
             <div className="grid grid-cols-4 gap-2 mb-2">
               <div><label className="text-xs">kcal</label><input type="number" value={mealCalories} onChange={(e) => setMealCalories(Number(e.target.value))} className={`w-full rounded-md border p-2 ${inputClass}`} /></div>
-              <div><label className="text-xs">P (タンパク質)</label><input type="number" value={mealProtein} onChange={(e) => setMealProtein(Number(e.target.value))} className={`w-full rounded-md border p-2 ${inputClass}`} /></div>
-              <div><label className="text-xs">F (脂質)</label><input type="number" value={mealFat} onChange={(e) => setMealFat(Number(e.target.value))} className={`w-full rounded-md border p-2 ${inputClass}`} /></div>
-              <div><label className="text-xs">C (炭水化物)</label><input type="number" value={mealCarbs} onChange={(e) => setMealCarbs(Number(e.target.value))} className={`w-full rounded-md border p-2 ${inputClass}`} /></div>
+              <div><label className="text-xs">P</label><input type="number" value={mealProtein} onChange={(e) => setMealProtein(Number(e.target.value))} className={`w-full rounded-md border p-2 ${inputClass}`} /></div>
+              <div><label className="text-xs">F</label><input type="number" value={mealFat} onChange={(e) => setMealFat(Number(e.target.value))} className={`w-full rounded-md border p-2 ${inputClass}`} /></div>
+              <div><label className="text-xs">C</label><input type="number" value={mealCarbs} onChange={(e) => setMealCarbs(Number(e.target.value))} className={`w-full rounded-md border p-2 ${inputClass}`} /></div>
             </div>
             <textarea placeholder="食事のメモ" value={mealDetails} onChange={(e) => setMealDetails(e.target.value)} rows={2} className={`w-full rounded-md border p-3 ${inputClass}`} />
           </div>
