@@ -29,7 +29,7 @@ type Post = {
   meal_fat: number;
   meal_carbs: number;
   meal_details: string;
-  image_url: string | null;
+  image_url: string[] | string | null; 
   created_at: string;
   profiles: { username: string; avatar_url: string | null; is_private: boolean; } | null;
   likes: { user_id: string }[];
@@ -56,7 +56,7 @@ export default function PostList({ refreshKey, userId, singlePostId }: { refresh
       setIsLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
       
-      let acceptedFollowingIds: string[] = []; // 💡 フォロー中の人のIDをまとめる箱
+      let acceptedFollowingIds: string[] = [];
 
       if (user) {
         setCurrentUserId(user.id);
@@ -86,7 +86,6 @@ export default function PostList({ refreshKey, userId, singlePostId }: { refresh
       } else if (userId) {
         query = query.eq("user_id", userId);
       } else if (user) {
-        // 💡 修正①：ホーム画面の場合は、「自分のID」と「フォローしてる人のID」の投稿だけに絞り込む！！
         query = query.in("user_id", [user.id, ...acceptedFollowingIds]);
       }
 
@@ -105,7 +104,6 @@ export default function PostList({ refreshKey, userId, singlePostId }: { refresh
   }, [refreshKey, userId, singlePostId]);
 
   const sendNotification = async (receiverId: string, type: string, postId?: string) => {
-    // 💡 ここが鉄壁のガード！！「ログインしていない」または「相手と自分が同じID」なら通知を送らない！
     if (!currentUserId || receiverId === currentUserId) return;
     await supabase.from("notifications").insert({ user_id: receiverId, actor_id: currentUserId, type, post_id: postId });
   };
@@ -200,6 +198,14 @@ export default function PostList({ refreshKey, userId, singlePostId }: { refresh
       {posts.map((post) => {
         const isLikedByMe = post.likes.some(l => l.user_id === currentUserId);
         const isMyPost = currentUserId === post.user_id;
+        
+        // 💡 1. まず配列化する
+        const rawImageUrls = Array.isArray(post.image_url) 
+          ? post.image_url 
+          : (typeof post.image_url === 'string' ? [post.image_url] : []);
+        
+        // 💡 2. [null] や [""] などの「空っぽデータ」を完全に弾き飛ばす最強のフィルター！！
+        const imageUrls = rawImageUrls.filter(url => url && typeof url === 'string' && url.trim() !== "");
 
         return (
           <div 
@@ -222,13 +228,11 @@ export default function PostList({ refreshKey, userId, singlePostId }: { refresh
               <div className="flex items-center gap-4 text-gray-500 relative">
                 <span className="text-xs font-bold opacity-50">{post.date}</span>
                 
-                {/* 💡 修正②：アイコンの横に数字（span）を追加しました！！ */}
                 <button onClick={() => toggleLike(post.id, isLikedByMe, post.user_id)} className="flex items-center gap-1.5 hover:opacity-70 transition-opacity">
                   <Heart className={`w-5 h-5 ${isLikedByMe ? "fill-red-500 text-red-500" : ""}`} />
                   {post.likes.length > 0 && <span className={`text-xs font-bold ${isLikedByMe ? "text-red-500" : ""}`}>{post.likes.length}</span>}
                 </button>
                 
-                {/* 💡 修正②：コメントの横にも数字を追加！ */}
                 <button onClick={() => setOpenCommentId(openCommentId === post.id ? null : post.id)} className="flex items-center gap-1.5 hover:text-blue-500 transition-colors">
                   <MessageCircle className="w-5 h-5" />
                   {post.comments.length > 0 && <span className="text-xs font-bold text-blue-400">{post.comments.length}</span>}
@@ -310,9 +314,18 @@ export default function PostList({ refreshKey, userId, singlePostId }: { refresh
                 </div>
               )}
 
-              {post.image_url && (
-                <div className="mt-2 rounded-xl overflow-hidden border border-gray-800 bg-black/20">
-                  <img src={post.image_url} className="w-full h-auto object-contain max-h-[500px] mx-auto" alt="Post" />
+              {/* 画像グリッド */}
+              {imageUrls.length > 0 && (
+                <div className={`mt-2 rounded-xl overflow-hidden border ${theme === 'light' ? 'border-gray-200 bg-gray-50' : 'border-gray-800 bg-black/20'} ${imageUrls.length > 1 ? 'grid grid-cols-2 gap-1' : ''}`}>
+                  {imageUrls.map((url, idx) => {
+                    if (imageUrls.length === 1) {
+                      return <img key={idx} src={url} className="w-full h-auto object-contain max-h-[500px] mx-auto" alt="Post" />;
+                    }
+                    if (imageUrls.length === 3 && idx === 0) {
+                      return <img key={idx} src={url} className="w-full h-full object-cover col-span-2 aspect-[2/1]" alt="Post" />;
+                    }
+                    return <img key={idx} src={url} className="w-full h-full object-cover aspect-square" alt="Post" />;
+                  })}
                 </div>
               )}
             </div>

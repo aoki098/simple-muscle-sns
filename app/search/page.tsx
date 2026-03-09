@@ -4,10 +4,9 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useTheme } from "@/components/ThemeContext";
 import Link from "next/link";
-import { Search, User, Loader2, Lock } from "lucide-react"; // 💡 Lock（南京錠）追加！
+import { Search, User, Loader2, Lock } from "lucide-react"; 
 import { useRouter } from "next/navigation";
 
-// 💡 Profile型に is_private を追加！
 type Profile = {
   id: string;
   username: string;
@@ -26,7 +25,6 @@ export default function SearchPage() {
   
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   
-  // 💡 フォロー中とリクエスト中の状態を分ける！
   const [followingIds, setFollowingIds] = useState<string[]>([]);
   const [pendingIds, setPendingIds] = useState<string[]>([]);
 
@@ -41,7 +39,6 @@ export default function SearchPage() {
       }
       setCurrentUserId(user.id);
 
-      // 1. 自分のフォロー状況（承認済み ＆ 保留中）をごっそり取得！
       const { data: followData } = await supabase
         .from("follows")
         .select("following_id, status")
@@ -52,7 +49,6 @@ export default function SearchPage() {
         setPendingIds(followData.filter(f => f.status === 'pending').map(f => f.following_id));
       }
 
-      // 2. 自分以外のユーザーを取得（is_privateも一緒に取ってくる！）
       const { data: profilesData } = await supabase
         .from("profiles")
         .select("id, username, avatar_url, bio, is_private")
@@ -69,7 +65,7 @@ export default function SearchPage() {
     fetchUsers();
   }, [router]);
 
-  // 💡 リクエスト制に対応した究極のフォロー機能！
+  // 💡 リクエスト制 ＆ 通知エンジン搭載の完全版！
   const toggleFollow = async (targetId: string, isPrivate: boolean, e: React.MouseEvent) => {
     e.preventDefault();
     if (!currentUserId) return;
@@ -78,12 +74,10 @@ export default function SearchPage() {
     const isPending = pendingIds.includes(targetId);
 
     if (isFollowing || isPending) {
-      // 解除・取り消し
       setFollowingIds(prev => prev.filter(id => id !== targetId));
       setPendingIds(prev => prev.filter(id => id !== targetId));
       await supabase.from("follows").delete().match({ follower_id: currentUserId, following_id: targetId });
     } else {
-      // 新規フォロー（鍵垢ならpending、公開ならaccepted）
       const newStatus = isPrivate ? 'pending' : 'accepted';
       
       if (isPrivate) {
@@ -97,6 +91,14 @@ export default function SearchPage() {
         following_id: targetId,
         status: newStatus
       });
+
+      // 💡 検索画面からフォローした時も、確実に通知（手紙）を飛ばすエンジン！！
+      const { error: notifError } = await supabase.from("notifications").insert({
+        user_id: targetId,
+        actor_id: currentUserId,
+        type: newStatus === "pending" ? "pending" : "accepted"
+      });
+      if (notifError) console.error("通知エラー:", notifError);
     }
   };
 
@@ -111,7 +113,6 @@ export default function SearchPage() {
   return (
     <main className={`min-h-screen transition-colors duration-300 ${containerClass} pb-24`}>
       <div className="w-full px-4 pt-20 max-w-2xl mx-auto">
-        
         <h1 className="text-2xl font-bold mb-6 flex items-center gap-2">
           <Search className="w-6 h-6" /> ユーザーを探す
         </h1>
@@ -160,7 +161,6 @@ export default function SearchPage() {
                       )}
                     </div>
                     <div className="min-w-0 pr-4">
-                      {/* 💡 名前と南京錠アイコン！ */}
                       <div className="flex items-center">
                         <p className="font-bold truncate">{user.username || "名無し"}</p>
                         {isPrivate && <Lock className="w-3.5 h-3.5 ml-1.5 text-gray-500" strokeWidth={2.5} />}
@@ -169,7 +169,6 @@ export default function SearchPage() {
                     </div>
                   </div>
 
-                  {/* 💡 ボタンをテキスト付きに進化させ、3つの状態を完璧に表現！ */}
                   <button
                     onClick={(e) => toggleFollow(user.id, isPrivate, e)}
                     className={`shrink-0 px-4 py-2 rounded-full text-xs font-bold transition-colors flex items-center justify-center ${

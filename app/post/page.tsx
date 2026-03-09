@@ -18,8 +18,9 @@ export default function PostPage() {
   const [mealCarbs, setMealCarbs] = useState<number | "">("");
   const [mealDetails, setMealDetails] = useState("");
   
-  const [postImage, setPostImage] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  // 💡 複数画像に対応させるため、配列（配列）に変更！！
+  const [postImages, setPostImages] = useState<File[]>([]);
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [isPosting, setIsPosting] = useState(false);
@@ -36,21 +37,31 @@ export default function PostPage() {
     setExercises(newExercises);
   };
 
+  // 💡 選択した画像を個別に削除する機能
+  const removeImage = (indexToRemove: number) => {
+    setPostImages(prev => prev.filter((_, idx) => idx !== indexToRemove));
+    setPreviewUrls(prev => {
+      const newUrls = [...prev];
+      URL.revokeObjectURL(newUrls[indexToRemove]); // メモリの解放
+      newUrls.splice(indexToRemove, 1);
+      return newUrls;
+    });
+  };
+
   const handlePost = async () => {
     setIsPosting(true);
     setMessage("");
     setIsError(false);
 
-    // 💡 【ここが最強の門番！】空っぽの投稿をブロックする！！
     const validExercises = exercises.filter(ex => ex.name.trim() !== "");
     const hasMeal = Number(mealCalories) > 0 || mealDetails.trim() !== "";
-    const hasImage = postImage !== null;
+    const hasImage = postImages.length > 0; // 💡 複数対応
 
     if (validExercises.length === 0 && !hasMeal && !hasImage) {
       setMessage("入力内容がありません");
       setIsError(true);
       setIsPosting(false);
-      return; // 🛑 ここで強制終了！データベースには絶対送らない！
+      return; 
     }
 
     const { data: { user } } = await supabase.auth.getUser();
@@ -62,21 +73,27 @@ export default function PostPage() {
     }
 
     try {
-      let finalImageUrl = null;
+      let finalImageUrls: string[] = [];
 
-      if (postImage) {
+      // 💡 複数枚の画像を同時にアップロードするエンジン（Promise.all）！！
+      if (postImages.length > 0) {
         setMessage("画像をアップロード中...");
-        const fileExt = postImage.name.split('.').pop();
-        const filePath = `${user.id}/${Date.now()}.${fileExt}`;
+        
+        const uploadPromises = postImages.map(async (file) => {
+          const fileExt = file.name.split('.').pop();
+          const filePath = `${user.id}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
 
-        const { error: uploadError } = await supabase.storage
-          .from('post_images')
-          .upload(filePath, postImage);
+          const { error: uploadError } = await supabase.storage
+            .from('post_images')
+            .upload(filePath, file);
 
-        if (uploadError) throw uploadError;
+          if (uploadError) throw uploadError;
 
-        const { data } = supabase.storage.from('post_images').getPublicUrl(filePath);
-        finalImageUrl = data.publicUrl;
+          const { data } = supabase.storage.from('post_images').getPublicUrl(filePath);
+          return data.publicUrl; // URLを返す
+        });
+
+        finalImageUrls = await Promise.all(uploadPromises); // 全部終わるまで待つ！
       }
 
       setMessage("記録を保存中...");
@@ -85,13 +102,13 @@ export default function PostPage() {
         {
           user_id: user.id,
           date: date,
-          exercises: validExercises, // 💡 空の種目は最初から除外して保存！
+          exercises: validExercises,
           meal_calories: mealCalories || 0,
           meal_protein: mealProtein || 0,
           meal_fat: mealFat || 0,
           meal_carbs: mealCarbs || 0,
           meal_details: mealDetails,
-          image_url: finalImageUrl, 
+          image_url: finalImageUrls.length > 0 ? finalImageUrls : null, // 💡 配列として保存！！
         }
       ]);
 
@@ -104,8 +121,8 @@ export default function PostPage() {
         setExercises([{ name: "", weight: "", details: "" }]);
         setMealCalories(""); setMealProtein(""); setMealFat(""); setMealCarbs(""); setMealDetails("");
         
-        setPostImage(null);
-        setPreviewUrl(null);
+        setPostImages([]);
+        setPreviewUrls([]);
         if (fileInputRef.current) fileInputRef.current.value = '';
         
         setTimeout(() => setMessage(""), 3000); 
@@ -128,22 +145,29 @@ export default function PostPage() {
         
         <button 
           onClick={() => fileInputRef.current?.click()}
-          className="absolute top-3 right-5 p-1 text-gray-400 hover:text-gray-200 transition-colors"
-          title="写真を追加"
+          className={`absolute top-3 right-5 p-1 transition-colors ${postImages.length >= 4 ? 'text-gray-600 cursor-not-allowed' : 'text-gray-400 hover:text-gray-200'}`}
+          title="写真を追加 (最大4枚)"
+          disabled={postImages.length >= 4} // 💡 4枚でボタンを無効化
         >
           <ImagePlus className="w-7 h-7" />
         </button>
 
+        {/* 💡 multiple属性を追加して複数選択可能に！ */}
         <input 
           type="file" 
           accept="image/*" 
+          multiple
           hidden
           ref={fileInputRef}
           onChange={(e) => {
             if (e.target.files && e.target.files.length > 0) {
-              const file = e.target.files[0];
-              setPostImage(file);
-              setPreviewUrl(URL.createObjectURL(file));
+              const newFiles = Array.from(e.target.files);
+              // 💡 最大4枚までに制限して合体！
+              const combinedFiles = [...postImages, ...newFiles].slice(0, 4);
+              setPostImages(combinedFiles);
+              
+              const newUrls = combinedFiles.map(file => URL.createObjectURL(file));
+              setPreviewUrls(newUrls);
             }
           }}
         />
@@ -188,15 +212,20 @@ export default function PostPage() {
             <textarea placeholder="食事のメモ" value={mealDetails} onChange={(e) => setMealDetails(e.target.value)} rows={2} className={`w-full rounded-md border p-3 ${inputClass}`} />
           </div>
 
-          {previewUrl && (
-            <div className="relative mt-2">
-              <img src={previewUrl} alt="Preview" className="w-full h-auto max-h-64 object-contain rounded-md border border-gray-700 bg-black/20" />
-              <button 
-                onClick={() => { setPostImage(null); setPreviewUrl(null); if(fileInputRef.current) fileInputRef.current.value = ''; }}
-                className="absolute top-2 right-2 bg-black/70 text-white rounded-full p-1.5 text-xs hover:bg-black transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
+          {/* 💡 ここが美しい2x2グリッドのプレビューです！ */}
+          {previewUrls.length > 0 && (
+            <div className={`grid gap-2 mt-4 ${previewUrls.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+              {previewUrls.map((url, idx) => (
+                <div key={idx} className="relative aspect-square">
+                  <img src={url} alt={`Preview ${idx + 1}`} className="w-full h-full object-cover rounded-md border border-gray-700 bg-black/20" />
+                  <button 
+                    onClick={() => removeImage(idx)}
+                    className="absolute top-2 right-2 bg-black/70 text-white rounded-full p-1.5 text-xs hover:bg-black transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
             </div>
           )}
 
