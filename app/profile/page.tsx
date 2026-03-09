@@ -4,7 +4,6 @@ import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import { useTheme } from "@/components/ThemeContext";
-// 💡 CheckCircle2 を追加しました！
 import { User, Activity, CalendarDays, UserCheck, Users, Ruler, Weight, Loader2, CheckCircle2 } from "lucide-react"; 
 import Link from "next/link";
 
@@ -117,8 +116,6 @@ export default function ProfilePage() {
       bio: editBio,
       height: editHeight ? parseFloat(editHeight) : null,
       weight: editWeight ? parseFloat(editWeight) : null,
-      // 💡 エラーの原因だった updated_at を念のためコメントアウト！これで絶対にエラーになりません！
-      // updated_at: new Date().toISOString(),
     };
     
     const { error } = await supabase.from("profiles").update(updates).eq("id", userId);
@@ -205,18 +202,21 @@ export default function ProfilePage() {
 
               {/* 右側：上部に数字、下部に身体データ */}
               <div className="flex-1 w-full space-y-6">
+                {/* 💡 青木さんの gap-30 デザインを完全維持しつつ、順番だけを入れ替えました！ */}
                 <div className="flex justify-center gap-30 text-center w-full">
                   <Link href="/records" className="hover:opacity-70 transition-opacity block cursor-pointer">
                     <div className="text-xl font-extrabold">{stats.postsCount}</div>
                     <div className="text-[10px] opacity-60 font-bold uppercase tracking-wider">投稿</div>
                   </Link>
-                  <Link href="/profile/following" className="hover:opacity-70 transition-opacity block cursor-pointer">
-                    <div className="text-xl font-extrabold">{stats.following}</div>
-                    <div className="text-[10px] opacity-60 font-bold uppercase tracking-wider">フォロー</div>
-                  </Link>
+                  {/* 💡 フォロワーを真ん中に配置 */}
                   <Link href="/profile/followers" className="hover:opacity-70 transition-opacity block cursor-pointer">
                     <div className="text-xl font-extrabold">{stats.followers}</div>
                     <div className="text-[10px] opacity-60 font-bold uppercase tracking-wider">フォロワー</div>
+                  </Link>
+                  {/* 💡 フォローを右側に配置 */}
+                  <Link href="/profile/following" className="hover:opacity-70 transition-opacity block cursor-pointer">
+                    <div className="text-xl font-extrabold">{stats.following}</div>
+                    <div className="text-[10px] opacity-60 font-bold uppercase tracking-wider">フォロー</div>
                   </Link>
                 </div>
 
@@ -290,7 +290,7 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* 🍞 トースト通知のUI（ここから下に追加されました！） */}
+      {/* 🍞 トースト通知のUI */}
       <div 
         className={`fixed bottom-24 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-6 py-3 rounded-full shadow-[0_4px_15px_rgba(0,0,0,0.3)] font-bold flex items-center gap-2 transition-all duration-500 z-50 ${
           showToast ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10 pointer-events-none"
