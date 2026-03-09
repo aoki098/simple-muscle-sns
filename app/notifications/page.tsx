@@ -72,28 +72,54 @@ export default function NotificationsPage() {
 
       setIsLoading(false);
 
-      // 💡 ここが「未読のバッジを消し去る（消化する）」最強エンジンです！！
-      // 画面の描画（ローディング終了）を優先しつつ、裏側で「未読（is_read: false）のものだけ」を狙い撃ちで既読に変えます！
+      // 💡 未読のバッジを消し去る（消化する）最強エンジン
       await supabase
         .from("notifications")
         .update({ is_read: true })
         .eq("user_id", user.id)
-        .eq("is_read", false); // 👈 無駄なアップデートを避ける完璧なフォーム！
+        .eq("is_read", false);
     };
 
     fetchNotifications();
   }, [router]);
 
+  // 💡 ここを最強フォームに改造しました！！
   const handleAccept = async (notifId: string, followerId: string) => {
     if (!currentUserId || !followerId) return;
+    
+    // 画面上を先に承認済みに変える
     setNotifications(prev => prev.map(n => n.id === notifId ? { ...n, type: "accepted" } : n));
-    await supabase.from("follows").update({ status: "accepted" }).match({ follower_id: followerId, following_id: currentUserId });
+    
+    // 1. followsテーブルのステータスを更新
+    const { error: followError } = await supabase
+      .from("follows")
+      .update({ status: "accepted" })
+      .match({ follower_id: followerId, following_id: currentUserId });
+
+    // 🚨 センサー発動！もしデータベースのRLS（セキュリティ）で弾かれたら画面に犯人を晒す！
+    if (followError) {
+      alert(`🚨 承認エラー！DBで弾かれました: ${followError.message}`);
+      console.error("承認エラー詳細:", followError);
+    }
+
+    // 2. 💡 抜け落ちていた筋肉！通知テーブルのtypeも「accepted」に更新して保存！
+    await supabase.from("notifications").update({ type: "accepted" }).eq("id", notifId);
   };
 
+  // 💡 拒否の方もセンサーをつけました！
   const handleDecline = async (notifId: string, followerId: string) => {
     if (!currentUserId || !followerId) return;
     setNotifications(prev => prev.filter(n => n.id !== notifId));
-    await supabase.from("follows").delete().match({ follower_id: followerId, following_id: currentUserId });
+    
+    const { error: followError } = await supabase
+      .from("follows")
+      .delete()
+      .match({ follower_id: followerId, following_id: currentUserId });
+      
+    if (followError) {
+      alert(`🚨 拒否エラー！DBで弾かれました: ${followError.message}`);
+    }
+    
     await supabase.from("notifications").delete().eq("id", notifId);
   };
 
@@ -114,7 +140,6 @@ export default function NotificationsPage() {
         ) : (
           <div className="space-y-1">
             {notifications.map((item) => (
-              // 💡 item.is_read が false だった場合（新着）は、カードの枠が青く光って新着アピールしてくれます！
               <div key={item.id} className={`flex items-center justify-between p-4 rounded-xl border shadow-sm ${cardClass} ${!item.is_read ? 'border-blue-500/50 bg-blue-500/5' : ''}`}>
                 
                 <Link 
