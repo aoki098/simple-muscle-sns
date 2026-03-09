@@ -41,7 +41,7 @@ export default function NotificationsPage() {
           id, type, is_read, post_id,
           actor:profiles!actor_id(id, username, avatar_url),
           post:posts!notifications_post_id_fkey(exercises, meal_details)
-        `) // 👆 「notifications_post_id_fkey という筋を絶対に使え！」と強制！
+        `)
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
@@ -56,7 +56,6 @@ export default function NotificationsPage() {
             }
           }
 
-          // 💡 ここが超重要！actorが配列で返ってきたりnullだったりしても絶対にクラッシュさせない防御壁！
           const actorData = Array.isArray(n.actor) ? n.actor[0] : n.actor;
 
           return {
@@ -71,8 +70,15 @@ export default function NotificationsPage() {
         setNotifications(formattedNotifs);
       }
 
-      await supabase.from("notifications").update({ is_read: true }).eq("user_id", user.id);
       setIsLoading(false);
+
+      // 💡 ここが「未読のバッジを消し去る（消化する）」最強エンジンです！！
+      // 画面の描画（ローディング終了）を優先しつつ、裏側で「未読（is_read: false）のものだけ」を狙い撃ちで既読に変えます！
+      await supabase
+        .from("notifications")
+        .update({ is_read: true })
+        .eq("user_id", user.id)
+        .eq("is_read", false); // 👈 無駄なアップデートを避ける完璧なフォーム！
     };
 
     fetchNotifications();
@@ -108,7 +114,8 @@ export default function NotificationsPage() {
         ) : (
           <div className="space-y-1">
             {notifications.map((item) => (
-              <div key={item.id} className={`flex items-center justify-between p-4 rounded-xl border shadow-sm ${cardClass} ${!item.is_read ? 'border-blue-500/50' : ''}`}>
+              // 💡 item.is_read が false だった場合（新着）は、カードの枠が青く光って新着アピールしてくれます！
+              <div key={item.id} className={`flex items-center justify-between p-4 rounded-xl border shadow-sm ${cardClass} ${!item.is_read ? 'border-blue-500/50 bg-blue-500/5' : ''}`}>
                 
                 <Link 
                   href={
@@ -116,10 +123,9 @@ export default function NotificationsPage() {
                       ? `/post/${item.postId}` 
                       : `/profile/${item.actor?.id}`
                   } 
-                  className="flex items-center space-x-3 overflow-hidden hover:opacity-70 transition-opacity"
+                  className="flex items-center space-x-3 overflow-hidden hover:opacity-70 transition-opacity flex-1"
                 >
                   <div className={`w-12 h-12 rounded-full flex items-center justify-center overflow-hidden border border-gray-500/30 shrink-0 ${theme === 'light' ? 'bg-gray-200' : 'bg-gray-800'}`}>
-                    {/* 💡 ?. を使ってエラーを完全回避！ */}
                     {item.actor?.avatar_url ? <img src={item.actor.avatar_url} alt="icon" className="w-full h-full object-cover" /> : <User className="w-6 h-6 text-gray-400" />}
                   </div>
                   <div className="min-w-0 pr-2">
