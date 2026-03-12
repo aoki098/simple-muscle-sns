@@ -15,6 +15,16 @@ type Profile = {
   is_private: boolean;
 };
 
+// 💡 配列をランダムにシャッフルする最強のアルゴリズム（Fisher-Yates shuffle）
+const shuffleArray = (array: any[]) => {
+  const newArray = [...array];
+  for (let i = newArray.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+  }
+  return newArray;
+};
+
 export default function SearchPage() {
   const { theme } = useTheme();
   const router = useRouter();
@@ -53,10 +63,12 @@ export default function SearchPage() {
         .from("profiles")
         .select("id, username, avatar_url, bio, is_private")
         .neq("id", user.id)
-        .limit(50);
+        .limit(50); // 💡 最新の50人を取得
         
       if (profilesData) {
-        setUsers(profilesData as Profile[]);
+        // 💡 取得したユーザー一覧をランダムにシャッフルしてセットする！
+        const randomizedUsers = shuffleArray(profilesData);
+        setUsers(randomizedUsers as Profile[]);
       }
       
       setIsLoading(false);
@@ -65,7 +77,6 @@ export default function SearchPage() {
     fetchUsers();
   }, [router]);
 
-  // 💡 リクエスト制 ＆ 通知エンジン搭載の完全版！
   const toggleFollow = async (targetId: string, isPrivate: boolean, e: React.MouseEvent) => {
     e.preventDefault();
     if (!currentUserId) return;
@@ -92,7 +103,6 @@ export default function SearchPage() {
         status: newStatus
       });
 
-      // 💡 検索画面からフォローした時も、確実に通知（手紙）を飛ばすエンジン！！
       const { error: notifError } = await supabase.from("notifications").insert({
         user_id: targetId,
         actor_id: currentUserId,
@@ -102,9 +112,10 @@ export default function SearchPage() {
     }
   };
 
-  const filteredUsers = users.filter(user => 
-    (user.username || "").toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // 💡 検索バーの文字に応じて表示するユーザーを切り替えるエンジン！
+  const displayUsers = searchQuery.trim() === "" 
+    ? users // 何も入力されていない時は、シャッフルされたランダムな全ユーザーを表示
+    : users.filter(user => (user.username || "").toLowerCase().includes(searchQuery.toLowerCase())); // 入力時は関連するユーザーだけを抽出
 
   const containerClass = theme === "light" ? "bg-gray-50 text-gray-900" : "bg-gray-950 text-gray-100";
   const cardClass = theme === "light" ? "bg-white border-gray-200 hover:bg-gray-50" : "bg-black border-gray-800 text-gray-100 hover:bg-gray-900";
@@ -135,13 +146,13 @@ export default function SearchPage() {
             <Loader2 className="w-8 h-8 animate-spin mb-2" />
             <span className="font-bold text-sm">ユーザーを探しています...</span>
           </div>
-        ) : filteredUsers.length === 0 ? (
+        ) : displayUsers.length === 0 ? (
           <div className="text-center py-10 opacity-70 font-bold">
             ユーザーが見つかりませんでした。
           </div>
         ) : (
           <div className="space-y-4">
-            {filteredUsers.map((user) => {
+            {displayUsers.map((user) => {
               const isFollowing = followingIds.includes(user.id);
               const isPending = pendingIds.includes(user.id);
               const isPrivate = user.is_private;
