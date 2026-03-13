@@ -37,27 +37,30 @@ export default function Header() {
   const isRecords = pathname === "/records";
   const showHeaderBar = isTimeline || isRecords;
   
-  // 💡 ここに `border-b` とボーダーカラーを復活させました！！
   const headerBgClass = theme === "light" ? "bg-white/95 border-b border-gray-200" : "bg-black/95 border-b border-gray-800";
   const textColorClass = theme === "light" ? "text-gray-900" : "text-white";
   const iconHoverClass = theme === "light" ? "hover:bg-gray-200" : "hover:bg-gray-800";
 
   return (
-    <header className={`fixed top-0 left-0 w-full z-50 h-[48px] transition-colors duration-300 ${
+    <header className={`fixed top-0 left-0 w-full z-50 h-[48px] flex items-center justify-between px-4 transition-colors duration-300 ${
       showHeaderBar ? `${headerBgClass} backdrop-blur-md` : "pointer-events-none"
     }`}>
       
-      <div className="absolute top-1 left-4 pointer-events-auto z-10">
+      <div className="pointer-events-auto z-10 flex items-center">
         <Link 
           href={isLoggedIn ? "/profile" : "/login"} 
-          className="w-8 h-8 rounded-full overflow-hidden border border-gray-600 shadow-sm bg-gray-800 flex items-center justify-center transition-transform active:scale-90 hover:opacity-80 inline-block mt-0.5"
+          className="w-8 h-8 rounded-full overflow-hidden border border-gray-600 shadow-sm bg-gray-800 inline-flex items-center justify-center transition-transform active:scale-90 hover:opacity-80"
         >
-          {avatarUrl ? <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" /> : <User className="w-5 h-5 text-gray-400" />}
+          {avatarUrl ? (
+            <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
+          ) : (
+            <User className="w-5 h-5 text-gray-400 relative -left-[0.5px]" />
+          )}
         </Link>
       </div>
 
       {showHeaderBar && (
-        <div className={`w-full h-full flex items-center justify-center pointer-events-none ${textColorClass}`}>
+        <div className={`absolute inset-0 flex items-center justify-center pointer-events-none z-0 ${textColorClass}`}>
           <span className="font-bold text-sm tracking-widest">
             {isTimeline && "ホーム"}
             {isRecords && "自分の記録"}
@@ -65,8 +68,8 @@ export default function Header() {
         </div>
       )}
 
-      <div className="absolute top-1 right-4 pointer-events-auto z-10 flex items-center gap-1">
-        <Link href={isLoggedIn ? "/notifications" : "/login"} className={`w-8 h-8 rounded-full flex items-center justify-center transition-transform active:scale-90 relative ${iconHoverClass} mt-0.5`}>
+      <div className="pointer-events-auto z-10 flex items-center gap-1">
+        <Link href={isLoggedIn ? "/notifications" : "/login"} className={`w-8 h-8 rounded-full inline-flex items-center justify-center transition-transform active:scale-90 relative ${iconHoverClass}`}>
           <Bell className={`w-5 h-5 ${textColorClass}`} />
           {unreadCount > 0 && (
             <span className="absolute top-0 right-0 bg-red-500 text-white text-[9px] font-bold px-1 min-w-[14px] h-[14px] flex items-center justify-center rounded-full border border-white dark:border-black transform translate-x-1/4 -translate-y-1/4">
@@ -74,7 +77,7 @@ export default function Header() {
             </span>
           )}
         </Link>
-        <Link href={isLoggedIn ? "/search" : "/login"} className={`w-8 h-8 rounded-full flex items-center justify-center transition-transform active:scale-90 ${iconHoverClass} mt-0.5`}>
+        <Link href={isLoggedIn ? "/search" : "/login"} className={`w-8 h-8 rounded-full inline-flex items-center justify-center transition-transform active:scale-90 ${iconHoverClass}`}>
           <Search className={`w-5 h-5 ${textColorClass}`} />
         </Link>
       </div>

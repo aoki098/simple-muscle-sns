@@ -15,7 +15,6 @@ type Profile = {
   is_private: boolean;
 };
 
-// 💡 配列をランダムにシャッフルする最強のアルゴリズム（Fisher-Yates shuffle）
 const shuffleArray = (array: any[]) => {
   const newArray = [...array];
   for (let i = newArray.length - 1; i > 0; i--) {
@@ -63,10 +62,9 @@ export default function SearchPage() {
         .from("profiles")
         .select("id, username, avatar_url, bio, is_private")
         .neq("id", user.id)
-        .limit(50); // 💡 最新の50人を取得
+        .limit(50);
         
       if (profilesData) {
-        // 💡 取得したユーザー一覧をランダムにシャッフルしてセットする！
         const randomizedUsers = shuffleArray(profilesData);
         setUsers(randomizedUsers as Profile[]);
       }
@@ -112,10 +110,9 @@ export default function SearchPage() {
     }
   };
 
-  // 💡 検索バーの文字に応じて表示するユーザーを切り替えるエンジン！
   const displayUsers = searchQuery.trim() === "" 
-    ? users // 何も入力されていない時は、シャッフルされたランダムな全ユーザーを表示
-    : users.filter(user => (user.username || "").toLowerCase().includes(searchQuery.toLowerCase())); // 入力時は関連するユーザーだけを抽出
+    ? users 
+    : users.filter(user => (user.username || "ゲスト").toLowerCase().includes(searchQuery.toLowerCase())); // 💡 検索の対象も「ゲスト」に合わせる！
 
   const containerClass = theme === "light" ? "bg-gray-50 text-gray-900" : "bg-gray-950 text-gray-100";
   const cardClass = theme === "light" ? "bg-white border-gray-200 hover:bg-gray-50" : "bg-black border-gray-800 text-gray-100 hover:bg-gray-900";
@@ -123,7 +120,7 @@ export default function SearchPage() {
 
   return (
     <main className={`min-h-screen transition-colors duration-300 ${containerClass} pb-24`}>
-      <div className="w-full px-4 pt-20 max-w-2xl mx-auto">
+      <div className="w-full px-4 pt-0 max-w-2xl mx-auto">
         <h1 className="text-2xl font-bold mb-6 flex items-center gap-2">
           <Search className="w-6 h-6" /> ユーザーを探す
         </h1>
@@ -151,7 +148,7 @@ export default function SearchPage() {
             ユーザーが見つかりませんでした。
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-1">
             {displayUsers.map((user) => {
               const isFollowing = followingIds.includes(user.id);
               const isPending = pendingIds.includes(user.id);
@@ -173,7 +170,8 @@ export default function SearchPage() {
                     </div>
                     <div className="min-w-0 pr-4">
                       <div className="flex items-center">
-                        <p className="font-bold truncate">{user.username || "名無し"}</p>
+                        {/* 💡 検索結果の表示も「ゲスト」に変更！ */}
+                        <p className="font-bold truncate">{user.username || "ゲスト"}</p>
                         {isPrivate && <Lock className="w-3.5 h-3.5 ml-1.5 text-gray-500" strokeWidth={2.5} />}
                       </div>
                       {user.bio && <p className="text-xs opacity-70 mt-0.5 truncate">{user.bio}</p>}

@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { useTheme } from "@/components/ThemeContext";
 
 export default function LoginPage() {
-  // 💡 追加：今が「ログイン画面」か「新規登録画面」かを管理するスイッチ
   const [isLoginMode, setIsLoginMode] = useState(true); 
   
   const [email, setEmail] = useState("");
@@ -22,47 +21,59 @@ export default function LoginPage() {
     : "bg-black border-gray-700 focus:border-blue-500 text-white";
   const buttonClass = theme === "dark-red" ? "bg-red-700 hover:bg-red-800" : "bg-blue-600 hover:bg-blue-700";
 
-  // 💡 統合された送信処理（青いメインのボタンを押した時だけ走る）
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault(); // 空欄での送信を防ぐ
+    e.preventDefault(); 
     setLoading(true);
     setMessage("");
 
     if (isLoginMode) {
-      // --- ログインモードの時の処理 ---
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
         setMessage(`❌ ログインエラー: ${error.message}`);
       } else {
         setMessage("✅ ログイン成功！ホームへ戻ります。");
         router.push("/");
-        router.refresh();
       }
     } else {
-      // --- 新規登録モードの時の処理 ---
       const { error } = await supabase.auth.signUp({ email, password });
       if (error) {
         setMessage(`❌ 登録エラー: ${error.message}`);
       } else {
-        // 登録に成功したら、そのままログイン状態にしてホーム画面へ飛ばす！
         setMessage("✅ 登録完了！ホームへ移動します");
         router.push("/");
-        router.refresh();
       }
     }
     setLoading(false);
   };
 
+  const handleTestLogin = async () => {
+    setLoading(true);
+    setMessage("");
+    
+    // ※ここにテスト用アカウントの情報を設定します
+    const { error } = await supabase.auth.signInWithPassword({ 
+      email: "test@example.com", 
+      password: "password123" 
+    });
+
+    if (error) {
+      setMessage(`❌ テストログイン失敗: ${error.message}`);
+    } else {
+      setMessage("✅ テストアカウントでログインしました！");
+      router.push("/");
+    }
+    setLoading(false);
+  };
+
   return (
-    <main className="min-h-screen flex items-center justify-center px-4 transition-colors duration-300">
+    // 💡 ここが修正ポイント！ pb-24 md:pb-40 を追加して、下からグッと持ち上げています！
+    <main className="min-h-screen flex items-center justify-center px-4 pb-24 md:pb-40 transition-colors duration-300">
       <div className={`max-w-md w-full p-8 rounded-lg shadow-xl ${containerClass}`}>
         
-        {/* 💡 画面のタイトルが切り替わる */}
-        <h1 className="text-3xl font-extrabold text-center mb-8">
+        <h1 className="text-2xl font-extrabold text-center mb-8">
           {isLoginMode ? "ログイン" : "新規アカウント作成"}
         </h1>
         
-        {/* onSubmitで、上の handleSubmit が呼ばれる */}
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label className="block text-sm font-medium mb-1 opacity-70">メールアドレス</label>
@@ -72,7 +83,7 @@ export default function LoginPage() {
               className={`w-full p-3 rounded-md border transition-colors ${inputClass}`}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="muscle@example.com"
+              placeholder="mail@example.com"
             />
           </div>
 
@@ -81,7 +92,7 @@ export default function LoginPage() {
             <input
               type="password"
               required
-              minLength={6} // パスワードは最低6文字必要というルールを追加
+              minLength={6}
               className={`w-full p-3 rounded-md border transition-colors ${inputClass}`}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -94,19 +105,48 @@ export default function LoginPage() {
             disabled={loading}
             className={`w-full py-3 rounded-md text-white font-bold transition-all shadow-lg ${buttonClass} ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
           >
-            {/* 💡 青いメインボタンの文字も切り替わる */}
             {loading ? "通信中..." : isLoginMode ? "ログイン" : "新規登録してはじめる"}
           </button>
         </form>
 
+        {isLoginMode && (
+          <div className="mt-6">
+            <div className="relative mb-6">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-500/30"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className={`px-4 text-xs opacity-60 ${theme === 'light' ? 'bg-white' : 'bg-black'}`}>
+                  または
+                </span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleTestLogin}
+              disabled={loading}
+              className={`w-full py-3 rounded-md font-bold transition-all shadow-sm border-2 ${
+                theme === 'light' 
+                  ? 'border-gray-300 hover:bg-gray-100 text-gray-800' 
+                  : 'border-gray-700 hover:bg-gray-800 text-gray-200'
+              } flex items-center justify-center gap-2 ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
+            >
+              テストアカウントでログイン
+            </button>
+            <p className="text-[10px] text-center mt-2 opacity-50">
+              ※採用担当者様はこちらからワンタップでお試しいただけます。
+            </p>
+          </div>
+        )}
+
         <div className="mt-6 flex flex-col space-y-3">
-          {/* 💡 ここがモード切り替え用のボタン！押しても通信はせず、画面の見た目が変わるだけ */}
           <button
             type="button"
             onClick={() => {
-              setIsLoginMode(!isLoginMode); // モードを反転させる
-              setMessage(""); // メッセージもリセット
-              setEmail(""); // 入力欄もリセット
+              setIsLoginMode(!isLoginMode); 
+              setMessage(""); 
+              setEmail(""); 
               setPassword("");
             }}
             disabled={loading}

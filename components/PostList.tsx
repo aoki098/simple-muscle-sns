@@ -77,10 +77,7 @@ export default function PostList({ refreshKey, userId, singlePostId, feedType = 
 
         if (feedType === "recommended") {
           fetchedPosts = fetchedPosts.filter((p: any) => {
-            // 💡 自分の投稿なら、自分が鍵垢でも「おすすめタブ」に表示する！！
             if (user && p.user_id === user.id) return true;
-
-            // 💡 他人の投稿の場合は、鍵垢を除外する！
             const profile = Array.isArray(p.profiles) ? p.profiles[0] : p.profiles;
             return profile?.is_private !== true;
           });
@@ -179,10 +176,17 @@ export default function PostList({ refreshKey, userId, singlePostId, feedType = 
           <div key={post.id} onClick={(e) => { if ((e.target as HTMLElement).closest('button, a')) return; router.push(`/post/${post.id}`); }} className={`p-5 rounded-xl border shadow-md cursor-pointer transition-colors hover:bg-gray-800/30 ${cardClass}`}>
             <div className="flex justify-between items-center mb-1 border-b border-gray-700/50 pb-2">
               <Link href={`/profile/${post.user_id}`} className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-500/30 bg-gray-800">
-                  {post.profiles?.avatar_url ? <img src={post.profiles.avatar_url} className="w-full h-full object-cover" /> : <User className="w-6 h-6 m-2 text-gray-400" />}
+                
+                {/* 💡 ここが修正ポイント！！ flex items-center justify-center を追加し、Userアイコンの m-2 を削除しました！ */}
+                <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-500/30 bg-gray-800 flex items-center justify-center">
+                  {post.profiles?.avatar_url ? (
+                    <img src={post.profiles.avatar_url} className="w-full h-full object-cover" />
+                  ) : (
+                    <User className="w-6 h-6 text-gray-400" />
+                  )}
                 </div>
-                <span className="font-bold text-sm">{post.profiles?.username || "名無し"}</span>
+
+                <span className="font-bold text-sm">{post.profiles?.username || "ゲスト"}</span>
               </Link>
               
               <div className="flex items-center gap-4 text-gray-500 relative">
@@ -240,10 +244,19 @@ export default function PostList({ refreshKey, userId, singlePostId, feedType = 
                     <div key={comment.id} className="flex flex-col gap-1 p-2 bg-gray-800/40 rounded-lg">
                       <div className="flex justify-between items-center">
                         <Link href={`/profile/${comment.user_id}`} className="flex items-center gap-2 hover:opacity-70 transition-opacity">
-                          <div className="w-5 h-5 rounded-full bg-gray-700 overflow-hidden shrink-0">{comment.profiles?.avatar_url ? <img src={comment.profiles.avatar_url} className="w-full h-full object-cover" /> : <User className="w-3 h-3 m-1 text-gray-400" />}</div>
-                          <span className="font-bold text-xs text-blue-400">{comment.profiles?.username || "名無し"}</span>
+                          
+                          {/* 💡 コメント欄のアイコンも同様に修正！！ */}
+                          <div className="w-5 h-5 rounded-full bg-gray-700 overflow-hidden shrink-0 flex items-center justify-center">
+                            {comment.profiles?.avatar_url ? (
+                              <img src={comment.profiles.avatar_url} className="w-full h-full object-cover" />
+                            ) : (
+                              <User className="w-3 h-3 text-gray-400" />
+                            )}
+                          </div>
+
+                          <span className="font-bold text-xs text-blue-400">{comment.profiles?.username || "ゲスト"}</span>
                         </Link>
-                        <button onClick={() => setCommentText(`@${comment.profiles?.username} `)} className="text-[10px] font-bold text-gray-500 hover:text-white transition-colors">返信</button>
+                        <button onClick={() => setCommentText(`@${comment.profiles?.username || "ゲスト"} `)} className="text-[10px] font-bold text-gray-500 hover:text-white transition-colors">返信</button>
                       </div>
                       <p className="text-xs opacity-90 pl-7 leading-tight whitespace-pre-wrap">{comment.content}</p>
                     </div>
