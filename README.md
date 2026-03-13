@@ -1,36 +1,48 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# [ここにアプリの名前を入れる（例：FitLog）]
 
-## Getting Started
+## 🌐 概要 (Overview)
+日々の筋トレの記録（種目・重量）と、食事のPFCバランスを記録・共有できるフィットネス特化型のSNSアプリケーションです。
+単なる記録アプリではなく、ユーザー同士のコミュニケーション（いいね・コメント）や、承認制のプライベートアカウント（鍵垢）機能を実装し、安心して記録を共有できるクローズドなコミュニティ設計にこだわりました。
 
-First, run the development server:
+**▼ 実際のアプリはこちらから動作確認できます**
+- アプリURL: [ここにVercelのURLを貼る]
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+---
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🔑 面接官・採用担当者様へ（テストログインのご案内）
+スムーズにアプリの機能やUX（ルーティングガードや鍵垢の挙動など）をご体験いただけるよう、ワンタップでログインできるテストアカウントをご用意いたしました。
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+ログイン画面の **「🚀 テストアカウントでログイン」** ボタンを押していただくか、以下の情報でログインして動作をご確認ください。
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **メールアドレス**: `test@example.com`
+- **パスワード**: `password123`
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+## 🛠 使用技術 (Tech Stack)
+- **Frontend**: Next.js (App Router), React, Tailwind CSS, Lucide React
+- **Backend/BaaS**: Supabase (Authentication, Database, Storage)
+- **Hosting**: Vercel
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## ✨ 主な機能 (Features)
+1. **堅牢な認証システムとルーティング制御**
+   - Supabase Authを用いたサインアップ/ログイン。
+   - 未ログインユーザーが保護されたページにアクセスした際、エラーを起こさず即座にログイン画面へリダイレクトする厳密なルーティングガードを実装。
+2. **スマート・タイムライン（おすすめ / フォロー中）**
+   - **おすすめタブ**: 最新の投稿からランダムに抽出しつつ、時系列順（最新順）に再ソートして表示する独自アルゴリズムを実装。毎回新しい発見があるUXを提供します。
+   - **フォロー中タブ**: 自分がフォローしているユーザーのみの記録を表示。未ログイン時には専用の誘導UIを表示します。
+3. **ダイナミック・画像グリッド表示**
+   - 投稿された画像枚数（1〜4枚）に応じて、Instagramのように最適なレイアウトで自動分割・トリミング表示するUIを実装。
+4. **プライバシー管理（鍵垢機能）とフォロー承認**
+   - アカウントの「公開/非公開」切り替え機能。
+   - 非公開アカウントに対するフォローリクエスト（承認/待機/拒否）の複雑なステータス管理を実装。
+5. **洗練されたUI/UXデザイン**
+   - スクロールに応じてトップヘッダーの裏にスッと隠れる「スマートヘッダー（オートハイド）」の実装。
+   - 視覚的な錯覚を考慮したコンポーネントの配置（ド真ん中配置の微調整など）、ネイティブアプリに劣らないシームレスなユーザー体験を目指しました。
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 🔥 開発において最もこだわったポイント
+**「UX（ユーザー体験）の細部へのこだわりと、フロントエンドでのデータ保護」**です。
 
-## Deploy on Vercel
+特にタイムラインの「おすすめタブ」の実装においては、単にデータベースから全件取得するのではなく、「非公開アカウント（鍵垢）の投稿を確実に除外する処理」や、「ランダムにシャッフルしつつ、最終的な表示は時系列（新しい順）に並べ直すアルゴリズム」を組み込み、安全性とSNSとしての「新しい出会い」を両立させました。
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+また、面接官の方や初めてアプリを触る方が迷わないよう、ログイン画面に「ワンタップログイン機能」を実装するなど、ホスピタリティを意識した設計を行っています。
