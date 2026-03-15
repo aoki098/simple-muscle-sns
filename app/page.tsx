@@ -46,10 +46,8 @@ export default function Home() {
   const pillContainerBg = theme === "light" ? "bg-gray-100" : "bg-gray-800";
 
   return (
-    // 💡 pt-[48px] を入れて、ヘッダーの下から正確にスタートさせる！
-    <main className={`min-h-screen transition-colors duration-300 pt-[px] ${containerClass}`}>
+    <main className={`min-h-screen transition-colors duration-300 pt-0 ${containerClass}`}>
       
-      {/* 💡 pt-0 にして、タブの上の無駄な空白を完全に削ぎ落としました！ */}
       <div 
         className={`sticky top-[48px] z-40 px-3 pt-0 pb-1.5 flex justify-start backdrop-blur-md transition-transform duration-300 ease-in-out ${tabBgClass} ${
           showTabs ? "translate-y-0" : "-translate-y-[150%]"

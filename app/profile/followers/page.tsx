@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useTheme } from "@/components/ThemeContext";
 import Link from "next/link";
-// 💡 Lock（鍵アイコン）を追加！
 import { ArrowLeft, User, Loader2, Lock } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -13,7 +12,7 @@ type Profile = {
   username: string;
   avatar_url: string | null;
   bio: string | null;
-  is_private: boolean; // 💡 鍵垢かどうかの判定を追加！
+  is_private: boolean;
   posts_count?: number;
   followers_count?: number;
   following_count?: number;
@@ -44,7 +43,7 @@ export default function FollowersPage() {
         
         const { data: profiles } = await supabase
           .from("profiles")
-          .select("id, username, avatar_url, bio, is_private") // 💡 is_privateを追加！
+          .select("id, username, avatar_url, bio, is_private")
           .in("id", followerIds);
           
         if (profiles) {
@@ -123,7 +122,6 @@ export default function FollowersPage() {
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    {/* 💡 ここが名前と鍵アイコンの並び！ */}
                     <div className="flex items-center gap-1.5">
                       <p className="font-bold truncate">{user.username || "名無し"}</p>
                       {user.is_private && <Lock className="w-3.5 h-3.5 text-gray-500 shrink-0" strokeWidth={2.5} />}

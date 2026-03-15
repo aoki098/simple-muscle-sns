@@ -10,7 +10,7 @@ export default function SinglePostPage() {
   const router = useRouter();
   const { theme } = useTheme();
   
-  // URLから投稿のIDを抽出（筋肉の抽出！）
+  // URLから投稿IDを取得
   const postId = params.id as string;
 
   const containerClass = theme === "light" ? "bg-gray-50 text-gray-900" : "bg-black text-gray-100";
@@ -19,7 +19,7 @@ export default function SinglePostPage() {
     <main className={`min-h-screen pt-0 pb-24 transition-colors duration-300 ${containerClass}`}>
       <div className="max-w-xl mx-auto px-4 relative">
         
-        {/* ヘッダー（戻るボタン付き） */}
+        {/* 戻るボタン付きヘッダー */}
         <div className="flex items-center mb-6">
           <button 
             onClick={() => router.back()} 
@@ -30,7 +30,7 @@ export default function SinglePostPage() {
           <h1 className="text-xl font-bold">投稿の詳細</h1>
         </div>
 
-        {/* 💡 ここが最強のコンボ！先ほど改造したPostListに postId を渡すだけ！ */}
+        {/* PostListに投稿IDを渡して単一表示 */}
         <PostList singlePostId={postId} />
         
       </div>

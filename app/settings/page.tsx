@@ -4,7 +4,7 @@ import { useTheme } from "@/components/ThemeContext";
 import { useState, useEffect } from "react"; 
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
-import { Settings, Lock, Palette, LogOut, Loader2 } from "lucide-react"; // 💡 Loader2を追加！
+import { Settings, Lock, Palette, LogOut, Loader2 } from "lucide-react";
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
@@ -12,17 +12,19 @@ export default function SettingsPage() {
   
   const [isPrivate, setIsPrivate] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true); // 💡 ログイン確認＆データ読み込み状態
+  
+  // データ読み込み状態の管理
+  const [isLoading, setIsLoading] = useState(true);
 
   const panelClass = theme === "light" ? "bg-white text-gray-800" : "bg-black border border-gray-800 text-gray-200";
   const dividerClass = theme === "light" ? "border-gray-200" : "border-gray-800";
 
-  // 💡 【最強の門番】画面を開いた瞬間にログイン確認＆設定取得！！
+  // 初回マウント時にログイン状態と設定を取得
   useEffect(() => {
     const fetchPrivacySetting = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       
-      // 💡 ユーザーがいなければ問答無用でログイン画面へ強制送還！！
+      // 未ログイン時はログインページへリダイレクト
       if (!user) {
         router.push("/login");
         return; 
@@ -39,12 +41,11 @@ export default function SettingsPage() {
         setIsPrivate(data.is_private || false);
       }
       
-      // 💡 確認が終わったら画面を表示する！
       setIsLoading(false);
     };
 
     fetchPrivacySetting();
-  }, [router]); // 💡 routerを依存配列に追加
+  }, [router]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -81,7 +82,7 @@ export default function SettingsPage() {
     </button>
   );
 
-  // 💡 【重要】ログイン確認が終わるまでは画面を見せず、ローディングだけ回す！
+  // 読み込み中はローディングUIを表示
   if (isLoading) {
     return (
       <div className={`min-h-screen flex items-center justify-center ${theme === 'light' ? 'bg-gray-50' : 'bg-black'}`}>
@@ -99,7 +100,7 @@ export default function SettingsPage() {
       
       <div className="max-w-xl mx-auto space-y-3">
         
-        {/* --- 🔒 アカウント公開設定 --- */}
+        {/* アカウント公開設定 */}
         <div className={`py-3 px-3 rounded-lg shadow-md transition-colors duration-300 ${panelClass}`}>
           <h2 className={`font-bold mb-2 border-b pb-2 flex items-center gap-2 ${dividerClass}`}>
             <Lock className="w-5 h-5 text-gray-500" />
@@ -118,7 +119,7 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* --- 🎨 テーマカラー設定 --- */}
+        {/* テーマカラー設定 */}
         <div className={`p-4 rounded-lg shadow-md transition-colors duration-300 ${panelClass}`}>
           <h2 className={`font-bold mb-4 border-b pb-2 flex items-center gap-2 ${dividerClass}`}>
             <Palette className="w-5 h-5 text-gray-500" />
@@ -137,7 +138,7 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* --- 🚪 アカウント管理 --- */}
+        {/* アカウント管理 */}
         <div className={`p-3 rounded-lg shadow-md transition-colors duration-300 ${panelClass}`}>
           <button onClick={handleLogout} className="w-full py-2.5 bg-red-950 text-red-500 font-bold rounded-md hover:bg-red-900 border border-red-800 transition flex items-center justify-center gap-2">
             <LogOut className="w-5 h-5" />

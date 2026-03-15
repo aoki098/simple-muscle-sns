@@ -176,8 +176,6 @@ export default function PostList({ refreshKey, userId, singlePostId, feedType = 
           <div key={post.id} onClick={(e) => { if ((e.target as HTMLElement).closest('button, a')) return; router.push(`/post/${post.id}`); }} className={`p-5 rounded-xl border shadow-md cursor-pointer transition-colors hover:bg-gray-800/30 ${cardClass}`}>
             <div className="flex justify-between items-center mb-1 border-b border-gray-700/50 pb-2">
               <Link href={`/profile/${post.user_id}`} className="flex items-center space-x-3">
-                
-                {/* 💡 ここが修正ポイント！！ flex items-center justify-center を追加し、Userアイコンの m-2 を削除しました！ */}
                 <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-500/30 bg-gray-800 flex items-center justify-center">
                   {post.profiles?.avatar_url ? (
                     <img src={post.profiles.avatar_url} className="w-full h-full object-cover" />
@@ -185,7 +183,6 @@ export default function PostList({ refreshKey, userId, singlePostId, feedType = 
                     <User className="w-6 h-6 text-gray-400" />
                   )}
                 </div>
-
                 <span className="font-bold text-sm">{post.profiles?.username || "ゲスト"}</span>
               </Link>
               
@@ -219,7 +216,10 @@ export default function PostList({ refreshKey, userId, singlePostId, feedType = 
                 <div className="space-y-0"><h3 className="text-[12px] font-bold opacity-50 uppercase tracking-tighter">食事</h3>
                   {post.meal_calories > 0 && (
                     <div className={`flex flex-wrap justify-between items-center w-full text-[11px] sm:text-xs font-bold p-3 rounded-lg gap-y-1 ${macroClass}`}>
-                      <span>🍴 {post.meal_calories}kcal</span><span className="text-blue-600 dark:text-blue-400">P: {post.meal_protein}g</span><span className="text-orange-500 dark:text-orange-400">F: {post.meal_fat}g</span><span className="text-green-600 dark:text-green-400">C: {post.meal_carbs}g</span>
+                      <span>🍴 {post.meal_calories}kcal</span>
+                      <span className="text-blue-600 dark:text-blue-400">P(タンパク質): {post.meal_protein}g</span>
+                      <span className="text-orange-500 dark:text-orange-400">F(脂質): {post.meal_fat}g</span>
+                      <span className="text-green-600 dark:text-green-400">C(炭水化物): {post.meal_carbs}g</span>
                     </div>
                   )}
                   {post.meal_details && <div className="pt-0"><p className="text-sm opacity-90 whitespace-pre-wrap pl-3 border-l-2 border-green-500/50 leading-relaxed bg-gray-800/10 py-1.5 rounded-r">{post.meal_details}</p></div>}
@@ -244,8 +244,6 @@ export default function PostList({ refreshKey, userId, singlePostId, feedType = 
                     <div key={comment.id} className="flex flex-col gap-1 p-2 bg-gray-800/40 rounded-lg">
                       <div className="flex justify-between items-center">
                         <Link href={`/profile/${comment.user_id}`} className="flex items-center gap-2 hover:opacity-70 transition-opacity">
-                          
-                          {/* 💡 コメント欄のアイコンも同様に修正！！ */}
                           <div className="w-5 h-5 rounded-full bg-gray-700 overflow-hidden shrink-0 flex items-center justify-center">
                             {comment.profiles?.avatar_url ? (
                               <img src={comment.profiles.avatar_url} className="w-full h-full object-cover" />
@@ -253,7 +251,6 @@ export default function PostList({ refreshKey, userId, singlePostId, feedType = 
                               <User className="w-3 h-3 text-gray-400" />
                             )}
                           </div>
-
                           <span className="font-bold text-xs text-blue-400">{comment.profiles?.username || "ゲスト"}</span>
                         </Link>
                         <button onClick={() => setCommentText(`@${comment.profiles?.username || "ゲスト"} `)} className="text-[10px] font-bold text-gray-500 hover:text-white transition-colors">返信</button>

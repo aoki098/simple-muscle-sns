@@ -1,18 +1,17 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react"; // 💡 useEffectを追加！
+import { useState, useRef, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useTheme } from "@/components/ThemeContext";
-import { Dumbbell, Flame, Utensils, CheckCircle2, AlertCircle, Save, ImagePlus, X, Loader2 } from "lucide-react"; // 💡 Loader2を追加！
-import { useRouter } from "next/navigation"; // 💡 useRouterを追加！
+import { Dumbbell, Flame, Utensils, CheckCircle2, AlertCircle, Save, ImagePlus, X, Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 type Exercise = { name: string; weight: number | ""; details: string };
 
 export default function PostPage() {
   const { theme } = useTheme();
-  const router = useRouter(); // 💡 追加
+  const router = useRouter();
   
-  // 💡 門番の筋肉！「ログイン確認中」のステータスを追加
   const [isAuthChecking, setIsAuthChecking] = useState(true); 
 
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -31,15 +30,12 @@ export default function PostPage() {
   const [message, setMessage] = useState("");
   const [isError, setIsError] = useState(false);
 
-  // 💡 【最強の門番】ページを開いた瞬間にログイン状態をチェック！！
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        // ログインしていなければ、問答無用でログイン画面へ強制送還！！
         router.push("/login");
       } else {
-        // ログインしていれば、画面の表示を許可する！
         setIsAuthChecking(false);
       }
     };
@@ -60,7 +56,7 @@ export default function PostPage() {
     setPostImages(prev => prev.filter((_, idx) => idx !== indexToRemove));
     setPreviewUrls(prev => {
       const newUrls = [...prev];
-      URL.revokeObjectURL(newUrls[indexToRemove]); // メモリの解放
+      URL.revokeObjectURL(newUrls[indexToRemove]);
       newUrls.splice(indexToRemove, 1);
       return newUrls;
     });
@@ -84,7 +80,7 @@ export default function PostPage() {
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      router.push("/login"); // 💡 念のためのガード
+      router.push("/login");
       return;
     }
 
@@ -154,7 +150,6 @@ export default function PostPage() {
   const inputClass = theme === "light" ? "bg-gray-50 border-gray-300 focus:border-blue-500 text-gray-900" : "bg-gray-900 border-gray-700 focus:border-blue-500 text-white";
   const buttonClass = theme === "dark-red" ? "bg-red-700 hover:bg-red-800" : "bg-blue-600 hover:bg-blue-700";
 
-  // 💡 【重要】ログイン確認が終わるまでは、画面を見せずにローディングアイコンだけを回す！！
   if (isAuthChecking) {
     return (
       <div className={`min-h-screen flex items-center justify-center ${theme === 'light' ? 'bg-gray-50' : 'bg-black'}`}>
@@ -226,15 +221,14 @@ export default function PostPage() {
               食事・PFC
             </h2>
             <div className="grid grid-cols-4 gap-2 mb-2">
-              <div><label className="text-xs">kcal</label><input type="number" value={mealCalories} onChange={(e) => setMealCalories(Number(e.target.value))} className={`w-full rounded-md border p-2 ${inputClass}`} /></div>
-              <div><label className="text-xs">P</label><input type="number" value={mealProtein} onChange={(e) => setMealProtein(Number(e.target.value))} className={`w-full rounded-md border p-2 ${inputClass}`} /></div>
-              <div><label className="text-xs">F</label><input type="number" value={mealFat} onChange={(e) => setMealFat(Number(e.target.value))} className={`w-full rounded-md border p-2 ${inputClass}`} /></div>
-              <div><label className="text-xs">C</label><input type="number" value={mealCarbs} onChange={(e) => setMealCarbs(Number(e.target.value))} className={`w-full rounded-md border p-2 ${inputClass}`} /></div>
+              <div><label className="text-[10px] font-bold opacity-80">カロリー</label><input type="number" value={mealCalories} onChange={(e) => setMealCalories(Number(e.target.value))} className={`w-full rounded-md border p-2 ${inputClass}`} /></div>
+              <div><label className="text-[10px] font-bold opacity-80 text-blue-500 dark:text-blue-400">P(タンパク質)</label><input type="number" value={mealProtein} onChange={(e) => setMealProtein(Number(e.target.value))} className={`w-full rounded-md border p-2 ${inputClass}`} /></div>
+              <div><label className="text-[10px] font-bold opacity-80 text-orange-500 dark:text-orange-400">F(脂質)</label><input type="number" value={mealFat} onChange={(e) => setMealFat(Number(e.target.value))} className={`w-full rounded-md border p-2 ${inputClass}`} /></div>
+              <div><label className="text-[10px] font-bold opacity-80 text-green-600 dark:text-green-400">C(炭水化物)</label><input type="number" value={mealCarbs} onChange={(e) => setMealCarbs(Number(e.target.value))} className={`w-full rounded-md border p-2 ${inputClass}`} /></div>
             </div>
             <textarea placeholder="食事のメモ" value={mealDetails} onChange={(e) => setMealDetails(e.target.value)} rows={2} className={`w-full rounded-md border p-3 ${inputClass}`} />
           </div>
 
-          {/* 💡 ここが美しい2x2グリッドのプレビューです！ */}
           {previewUrls.length > 0 && (
             <div className={`grid gap-2 mt-4 ${previewUrls.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
               {previewUrls.map((url, idx) => (

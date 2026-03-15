@@ -50,7 +50,6 @@ export default function LoginPage() {
     setLoading(true);
     setMessage("");
     
-    // ※ここにテスト用アカウントの情報を設定します
     const { error } = await supabase.auth.signInWithPassword({ 
       email: "test@example.com", 
       password: "password123" 
@@ -66,7 +65,6 @@ export default function LoginPage() {
   };
 
   return (
-    // 💡 ここが修正ポイント！ pb-24 md:pb-40 を追加して、下からグッと持ち上げています！
     <main className="min-h-screen flex items-center justify-center px-4 pb-24 md:pb-40 transition-colors duration-300">
       <div className={`max-w-md w-full p-8 rounded-lg shadow-xl ${containerClass}`}>
         

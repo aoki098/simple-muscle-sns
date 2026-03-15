@@ -112,7 +112,7 @@ export default function SearchPage() {
 
   const displayUsers = searchQuery.trim() === "" 
     ? users 
-    : users.filter(user => (user.username || "ゲスト").toLowerCase().includes(searchQuery.toLowerCase())); // 💡 検索の対象も「ゲスト」に合わせる！
+    : users.filter(user => (user.username || "ゲスト").toLowerCase().includes(searchQuery.toLowerCase()));
 
   const containerClass = theme === "light" ? "bg-gray-50 text-gray-900" : "bg-gray-950 text-gray-100";
   const cardClass = theme === "light" ? "bg-white border-gray-200 hover:bg-gray-50" : "bg-black border-gray-800 text-gray-100 hover:bg-gray-900";
@@ -170,7 +170,6 @@ export default function SearchPage() {
                     </div>
                     <div className="min-w-0 pr-4">
                       <div className="flex items-center">
-                        {/* 💡 検索結果の表示も「ゲスト」に変更！ */}
                         <p className="font-bold truncate">{user.username || "ゲスト"}</p>
                         {isPrivate && <Lock className="w-3.5 h-3.5 ml-1.5 text-gray-500" strokeWidth={2.5} />}
                       </div>
