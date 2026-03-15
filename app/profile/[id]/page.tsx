@@ -104,8 +104,7 @@ export default function UserProfilePage() {
         status: newStatus
       });
 
-      // 💡 ここが追加した通知エンジン（最強の筋肉）です！！
-      // プロフィール画面のボタンを押した時にも、相手に「フォロー」または「リクエスト」の通知を飛ばします！
+      // フォローまたはフォローリクエストの通知を作成
       if (currentUserId !== id) {
         const { error: notifError } = await supabase.from("notifications").insert({
           user_id: id,
@@ -113,12 +112,10 @@ export default function UserProfilePage() {
           type: newStatus === "pending" ? "pending" : "accepted"
         });
         
-        // 👇 エラーが起きたら画面に強制表示して犯人特定！！
+        // 通知エラーのハンドリング
         if (notifError) {
-          alert(`🚨 通知エラー発生！: ${notifError.message}`);
-          console.error("通知エラーの詳細:", notifError);
-        } else {
-          console.log("✅ 通知のデータベース保存に成功しました！");
+          alert(`通知エラー: ${notifError.message}`);
+          console.error("通知エラー:", notifError);
         }
       }
     }

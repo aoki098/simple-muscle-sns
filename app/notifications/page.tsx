@@ -72,7 +72,7 @@ export default function NotificationsPage() {
 
       setIsLoading(false);
 
-      // 💡 未読のバッジを消し去る（消化する）最強エンジン
+      // 未読を既読に更新
       await supabase
         .from("notifications")
         .update({ is_read: true })
@@ -83,32 +83,31 @@ export default function NotificationsPage() {
     fetchNotifications();
   }, [router]);
 
-  // 💡 ここを最強フォームに改造しました！！
   const handleAccept = async (notifId: string, followerId: string) => {
     if (!currentUserId || !followerId) return;
     
-    // 画面上を先に承認済みに変える
+    // 画面上を先に承認済みに変更
     setNotifications(prev => prev.map(n => n.id === notifId ? { ...n, type: "accepted" } : n));
     
-    // 1. followsテーブルのステータスを更新
+    // 1. followsテーブルを更新
     const { error: followError } = await supabase
       .from("follows")
       .update({ status: "accepted" })
       .match({ follower_id: followerId, following_id: currentUserId });
 
-    // 🚨 センサー発動！もしデータベースのRLS（セキュリティ）で弾かれたら画面に犯人を晒す！
+    // DB更新エラー時
     if (followError) {
-      alert(`🚨 承認エラー！DBで弾かれました: ${followError.message}`);
+      alert(`承認エラー: ${followError.message}`);
       console.error("承認エラー詳細:", followError);
     }
 
-    // 2. 💡 抜け落ちていた筋肉！通知テーブルのtypeも「accepted」に更新して保存！
+    // 2. 通知のtypeをacceptedに更新
     await supabase.from("notifications").update({ type: "accepted" }).eq("id", notifId);
   };
 
-  // 💡 拒否の方もセンサーをつけました！
   const handleDecline = async (notifId: string, followerId: string) => {
     if (!currentUserId || !followerId) return;
+    
     setNotifications(prev => prev.filter(n => n.id !== notifId));
     
     const { error: followError } = await supabase
@@ -117,7 +116,7 @@ export default function NotificationsPage() {
       .match({ follower_id: followerId, following_id: currentUserId });
       
     if (followError) {
-      alert(`🚨 拒否エラー！DBで弾かれました: ${followError.message}`);
+      alert(`拒否エラー: ${followError.message}`);
     }
     
     await supabase.from("notifications").delete().eq("id", notifId);

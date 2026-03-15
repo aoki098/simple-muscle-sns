@@ -27,9 +27,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       if (theme === "light") {
         document.body.className = "bg-gray-50 text-gray-900";
       } else if (theme === "dark-red") {
-        document.body.className = "bg-black text-gray-100"; // 漆黒！
+        document.body.className = "bg-black text-gray-100";
       } else if (theme === "dark-blue") {
-        document.body.className = "bg-black text-gray-100"; // 漆黒！
+        document.body.className = "bg-black text-gray-100";
       }
     }
   }, [theme, mounted]);

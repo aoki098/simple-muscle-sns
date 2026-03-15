@@ -1,9 +1,7 @@
 import { Metadata } from "next";
 import { supabase } from "@/lib/supabase";
 
-// 💡 修正1：params の型を Promise に変更！
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
-  // 💡 修正2：await を使って、しっかり一呼吸おいてから id を取り出す！
   const resolvedParams = await params;
   const postId = resolvedParams.id;
 
@@ -26,7 +24,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     ? profilesData[0]?.username 
     : profilesData?.username || "名無し";
 
-  const title = `${username}さんの筋トレ＆食事記録💪`;
+  const title = `${username}さんの筋トレ＆食事記録`;
   const description = post.meal_details 
     ? post.meal_details.substring(0, 50) + "..." 
     : "今日のトレーニングと食事の記録をチェック！";

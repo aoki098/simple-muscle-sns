@@ -5,25 +5,26 @@ import { supabase } from "@/lib/supabase";
 import PostList from "@/components/PostList";
 import { useTheme } from "@/components/ThemeContext";
 import { Loader2 } from "lucide-react";
-import { useRouter } from "next/navigation"; // 💡 追加！
+import { useRouter } from "next/navigation";
 
 export default function RecordsPage() {
   const { theme } = useTheme();
-  const router = useRouter(); // 💡 追加！
+  const router = useRouter();
   const [myUserId, setMyUserId] = useState<string | null>(null);
-  const [isAuthChecking, setIsAuthChecking] = useState(true); // 💡 門番の状態管理
+  
+  // 認証状態の確認フラグ
+  const [isAuthChecking, setIsAuthChecking] = useState(true);
 
   useEffect(() => {
     const fetchUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       
-      // 💡 未ログインなら光の速さでログイン画面へ強制送還！！
+      // 未ログイン時はログインページへ
       if (!user) {
         router.push("/login");
         return;
       }
       
-      // 💡 ログインしていればIDをセットして、門番を開ける！
       setMyUserId(user.id);
       setIsAuthChecking(false);
     };
@@ -32,7 +33,7 @@ export default function RecordsPage() {
 
   const containerClass = theme === "light" ? "bg-white text-gray-900" : "bg-black text-gray-100";
 
-  // 💡 確認が終わるまでは、画面を見せずにローディングだけ回す！
+  // 認証確認中はローディングUIを表示
   if (isAuthChecking) {
     return (
       <div className={`min-h-screen flex flex-col items-center justify-center ${theme === 'light' ? 'bg-white text-gray-900' : 'bg-black text-gray-100'}`}>
@@ -44,7 +45,6 @@ export default function RecordsPage() {
 
   return (
     <main className={`min-h-screen transition-colors duration-300 ${containerClass}`}>
-      {/* 💡 pt-20 を設定して、固定ヘッダーの下からリストが始まるように調整しました */}
       <div className="w-full px-4 pt-3">
         {myUserId && <PostList refreshKey={0} userId={myUserId} />}
       </div>
