@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useTheme } from "@/components/ThemeContext";
-import { User, Loader2, Heart, MessageCircle, Send, MoreHorizontal, Trash2, Share2, Lock, AlertCircle } from "lucide-react";
+import { User, Loader2, Heart, MessageCircle, Send, MoreHorizontal, Trash2, Share2, Lock, AlertCircle, Edit2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -194,6 +194,7 @@ export default function PostList({ refreshKey, userId, singlePostId, feedType = 
                 {isMyPost && <button onClick={() => setOpenMenuId(openMenuId === post.id ? null : post.id)} className="p-1 hover:bg-gray-700/30 rounded-full"><MoreHorizontal className="w-5 h-5 text-gray-400" /></button>}
                 {isMyPost && openMenuId === post.id && (
                   <div className="absolute top-8 right-0 w-36 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50 overflow-hidden">
+                    <button onClick={() => { router.push(`/post/edit/${post.id}`); setOpenMenuId(null); }} className="w-full text-left px-4 py-3 text-sm font-bold text-blue-500 hover:bg-gray-700 flex items-center gap-2"><Edit2 className="w-4 h-4" /> 編集する</button>
                     <button onClick={() => { handleDelete(post.id); setOpenMenuId(null); }} className="w-full text-left px-4 py-3 text-sm font-bold text-red-500 hover:bg-gray-700 flex items-center gap-2"><Trash2 className="w-4 h-4" /> 削除する</button>
                   </div>
                 )}
